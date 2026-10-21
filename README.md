@@ -2,6 +2,8 @@
 
 A local, single-user screening application with a curated default SDET job description, editable custom JD requirements, project-level evidence, transparent scores, interview questions, and downloadable HTML/PDF reports.
 
+**Streamlit hosting:** A separate session-isolated Streamlit interface is available in `streamlit_app.py`. See [STREAMLIT_DEPLOY.md](STREAMLIT_DEPLOY.md) for Community Cloud settings and hosted data-handling details. The local-server deployment limits described below apply to the original FastAPI surface.
+
 ## Run locally
 
 Python 3.12+ is recommended. No API key or external AI service is required.

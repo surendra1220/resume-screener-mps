@@ -2,6 +2,7 @@
 __pycache__/
 .pytest_cache/
 .env
+.streamlit/secrets.toml
 work/*
 !work/.gitkeep
 *.pyc
