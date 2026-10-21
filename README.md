@@ -37,6 +37,12 @@ Docker binds only to `127.0.0.1:8000` on the host. Containers are non-root and r
 
 Supported inputs: text-based PDF, DOCX, legacy DOC with antiword, UTF-8 TXT/Markdown/HTML/RTF, and ODT. Limits: 10 MB per file; 100 PDF pages; 120,000 extracted characters; bounded archive expansion. Scanned PDFs need OCR first. Unlocked documents only. Unsupported or malformed formats return an actionable error rather than an empty assessment.
 
+## Report layout
+
+PDF and HTML exports follow the supplied audit-report reference: **Candidate Ranking Leaderboard**, **4-Tier Evidence Gap Matrix**, and **Detailed Candidate Arithmetic & Verdicts**. Both show the screened filename, active JD, actual experience evidence, unresolved mandatory skills, exact resume excerpts, and the same scoring arithmetic. The navy header, blue headings, amber matrix borders, and takeaway panel mirror the reference structure. Long text wraps; PDF table headers repeat on continuation pages with Page n/N footers. Dates and date-based export filenames use IST.
+
+The layout does not import the reference candidate, score, or claims. Existing 80/20 scoring and mandatory gates are preserved; no override is invented. The leaderboard contains the single candidate in the current screening. Detailed reasoning, interview checks, limitations, and document fingerprints remain in the report.
+
 ## What the screening agent does
 
 This version is a **conservative local evidence-rules engine**, not an LLM. It uses document structure, work/project sections, action statements, accepted alternatives, required facets, explicit negation, and a curated interpretation of the supplied JD. It can miss paraphrases and unusual resume layouts. Custom paragraph parsing provides reviewable drafts rather than silently claiming semantic understanding. A human must approve custom requirements before screening in the UI.

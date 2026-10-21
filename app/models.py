@@ -24,6 +24,7 @@ class AnalyzeRequest(BaseModel):
     requirements: list[Requirement] = Field(min_length=1, max_length=60)
     jd_label: str = Field(default='Custom JD', max_length=200)
     candidate_label: str = Field(default='Candidate', max_length=200)
+    resume_filename: str | None = Field(default=None, max_length=200)
 
 
 class ReportRequest(BaseModel):

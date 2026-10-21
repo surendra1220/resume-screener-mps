@@ -405,6 +405,7 @@ $("#analyze-button").addEventListener("click", async () => {
         requirements: state.jd.requirements,
         jd_label: state.jd.label,
         candidate_label: state.resume.filename.replace(/\.[^.]+$/, ""),
+        resume_filename: state.resume.filename,
       }),
     });
     if (revision !== state.revision) {

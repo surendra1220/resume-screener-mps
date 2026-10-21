@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from app.documents import extract, DocumentError, MAX_BYTES
 from app.engine import analyze, parse_custom_jd
 from app.models import AnalyzeRequest
-from app.reports import html_report, pdf_report
+from app.reports import html_report, pdf_report, report_filename
 from app.streamlit_support import DEMO_RESUME, editor_rows, reviewed_requirements, fingerprint
 
 ROOT = Path(__file__).resolve().parent
@@ -146,7 +146,8 @@ try:
     if st.button('Screen candidate →', type='primary', disabled=not resume_text or not approved, width='stretch'):
         with st.spinner('Reviewing project evidence and mandatory gaps…'):
             request = AnalyzeRequest(resume_text=resume_text, jd_text=jd_text, requirements=requirements,
-                                     jd_label=jd_label, candidate_label=candidate_label)
+                                     jd_label=jd_label, candidate_label=candidate_label,
+                                     resume_filename=resume_file.name if resume_mode == 'Upload resume' else None)
             report = analyze(request)
             pdf = pdf_report(report)
             html = html_report(report)
@@ -173,8 +174,8 @@ if report:
     if report['mandatory_gaps']:
         st.write('**Mandatory evidence gaps:** ' + '; '.join(report['mandatory_gaps']))
     d1, d2 = st.columns(2)
-    d1.download_button('Download PDF report', st.session_state['pdf_bytes'], file_name=f'screening-{report["id"]}.pdf', mime='application/pdf', width='stretch', on_click='ignore')
-    d2.download_button('Download HTML report', st.session_state['html_bytes'], file_name=f'screening-{report["id"]}.html', mime='text/html', width='stretch', on_click='ignore')
+    d1.download_button('Download PDF report', st.session_state['pdf_bytes'], file_name=report_filename(report, 'pdf'), mime='application/pdf', width='stretch', on_click='ignore')
+    d2.download_button('Download HTML report', st.session_state['html_bytes'], file_name=report_filename(report, 'html'), mime='text/html', width='stretch', on_click='ignore')
     st.subheader('Skill-by-skill evidence')
     status = st.selectbox('Filter status', ['All statuses', *report['counts']])
     for row in report['requirements']:

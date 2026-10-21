@@ -151,6 +151,7 @@ def analyze(request, today=None):
         recommendation = 'Insufficient documented fit — substantial mandatory gaps'
     return {'id': sha256((request.jd_text + request.resume_text + str(rows)).encode()).hexdigest()[:12],
             'candidate': request.candidate_label, 'jd_label': request.jd_label,
+            'screened_files': [request.resume_filename] if request.resume_filename else [],
             'generated_at': datetime.now(timezone.utc).isoformat(), 'engine_version': VERSION,
             'score': score, 'scores': scores, 'recommendation': recommendation, 'mandatory_gaps': gaps,
             'requirements': rows, 'counts': {s: sum(r['status'] == s for r in rows) for s in POINTS},

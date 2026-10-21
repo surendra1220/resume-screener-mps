@@ -14,7 +14,7 @@ from starlette.concurrency import run_in_threadpool
 from .documents import extract, DocumentError, MAX_BYTES
 from .engine import analyze, parse_custom_jd
 from .models import AnalyzeRequest, Requirement
-from .reports import html_report, pdf_report
+from .reports import html_report, pdf_report, report_filename
 
 ROOT = Path(__file__).resolve().parents[1]
 reports = OrderedDict()
@@ -160,7 +160,7 @@ async def download(report_id: str, format: str):
         media = 'application/pdf'
     else:
         raise HTTPException(404, 'Choose HTML or PDF.')
-    return Response(data, media_type=media, headers={'Content-Disposition': f'attachment; filename="screening-{report["id"]}.{format}"'})
+    return Response(data, media_type=media, headers={'Content-Disposition': f'attachment; filename="{report_filename(report, format)}"'})
 
 
 @app.get('/')

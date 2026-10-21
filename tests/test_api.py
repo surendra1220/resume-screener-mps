@@ -59,7 +59,7 @@ def test_legacy_doc_actionable_error():
 def test_pdf_can_be_reuploaded(client):
  r=client.post('/api/analyze',json=body(client)).json();pdf=pdf_report(r)
  text=extract('report.pdf',pdf)
- assert 'SCREENING' in text and 'Mandatory' in text
+ assert 'Candidate Screening Audit Report' in text and 'Mandatory' in text
 
 def test_expired_report_is_not_downloadable(client):
  import time
