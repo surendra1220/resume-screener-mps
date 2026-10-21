@@ -49,7 +49,7 @@ with st.sidebar:
     st.write('Separate project evidence from claims, review mandatory gaps, and export a clear report.')
     st.divider()
     st.caption('No external AI calls. Uploaded documents are processed on the hosting server within your session. No candidate data is written to the repository or a shared report cache.')
-    if st.button('Clear session', use_container_width=True):
+    if st.button('Clear session', width='stretch'):
         st.session_state.clear()
         st.rerun()
     st.caption('Public app access does not make your report public. Downloaded reports remain on your device. Use only documents you are authorized to process.')
@@ -122,7 +122,7 @@ try:
     if jd_mode != 'Default SDET JD':
         st.warning('Custom extraction is a draft. Check categories, alternatives, required facets, and omitted conditions before approving.')
     st.caption('Alternatives are comma-separated (OR). Required facets are semicolon-separated (AND); | means OR inside a facet. Default facets use audited rules; editing them switches to literal matching.')
-    edited = st.data_editor(editor_rows(originals), key='requirements_editor', num_rows='dynamic', hide_index=True, use_container_width=True,
+    edited = st.data_editor(editor_rows(originals), key='requirements_editor', num_rows='dynamic', hide_index=True, width='stretch',
         column_config={
             'id': None,
             'name': st.column_config.TextColumn('Requirement', required=True),
@@ -143,7 +143,7 @@ try:
     if st.session_state.get('report_signature') != signature:
         clear_screening()
 
-    if st.button('Screen candidate →', type='primary', disabled=not resume_text or not approved, use_container_width=True):
+    if st.button('Screen candidate →', type='primary', disabled=not resume_text or not approved, width='stretch'):
         with st.spinner('Reviewing project evidence and mandatory gaps…'):
             request = AnalyzeRequest(resume_text=resume_text, jd_text=jd_text, requirements=requirements,
                                      jd_label=jd_label, candidate_label=candidate_label)
@@ -166,12 +166,15 @@ if report:
     c1.metric('Evidence coverage', f'{report["score"]} / 100')
     c2.metric('Mandatory coverage', f'{report["scores"]["Mandatory"]}%' if report['scores']['Mandatory'] is not None else 'N/A')
     c3.metric('Good-to-have coverage', f'{report["scores"]["Good to Have"]}%' if report['scores']['Good to Have'] is not None else 'N/A')
-    st.warning(report['recommendation']) if report['mandatory_gaps'] else st.success(report['recommendation'])
+    if report['mandatory_gaps']:
+        st.warning(report['recommendation'])
+    else:
+        st.success(report['recommendation'])
     if report['mandatory_gaps']:
         st.write('**Mandatory evidence gaps:** ' + '; '.join(report['mandatory_gaps']))
     d1, d2 = st.columns(2)
-    d1.download_button('Download PDF report', st.session_state['pdf_bytes'], file_name=f'screening-{report["id"]}.pdf', mime='application/pdf', use_container_width=True)
-    d2.download_button('Download HTML report', st.session_state['html_bytes'], file_name=f'screening-{report["id"]}.html', mime='text/html', use_container_width=True)
+    d1.download_button('Download PDF report', st.session_state['pdf_bytes'], file_name=f'screening-{report["id"]}.pdf', mime='application/pdf', width='stretch', on_click='ignore')
+    d2.download_button('Download HTML report', st.session_state['html_bytes'], file_name=f'screening-{report["id"]}.html', mime='text/html', width='stretch', on_click='ignore')
     st.subheader('Skill-by-skill evidence')
     status = st.selectbox('Filter status', ['All statuses', *report['counts']])
     for row in report['requirements']:

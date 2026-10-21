@@ -15,3 +15,6 @@ disconnectedSessionTTL = 120
 
 [browser]
 gatherUsageStats = false
+
+[runner]
+magicEnabled = false

@@ -56,3 +56,27 @@ def test_clear_session_removes_candidate_data():
     assert 'pdf_bytes' not in app.session_state
     assert 'resume_document' not in app.session_state
     assert not app.exception
+
+
+@pytest.mark.parametrize('has_gaps', [False, True])
+def test_verdict_does_not_render_internal_objects_with_magic_enabled(monkeypatch, has_gaps):
+    """Run the actual UI through the same magic AST transform used by the hosted runner."""
+    import ast
+    from streamlit.runtime.scriptrunner.magic import add_magic
+    from app.streamlit_support import DEMO_RESUME
+    resume = 'PROFESSIONAL EXPERIENCE:\nDeveloped Python automation tests for a billing platform.' if has_gaps else DEMO_RESUME.replace('Python automation frameworks', 'a Python automation framework')
+    monkeypatch.setattr('app.streamlit_support.DEMO_RESUME', resume)
+    source = (ROOT / 'streamlit_app.py').read_text().replace(
+        'ROOT = Path(__file__).resolve().parent', f'ROOT = Path({str(ROOT)!r})')
+    transformed = ast.unparse(add_magic(source, str(ROOT / 'streamlit_app.py')))
+    app = AppTest.from_string(transformed).run(timeout=30)
+    app.radio[1].set_value('Try synthetic demo').run()
+    app.checkbox[0].check().run()
+    next(b for b in app.button if b.label == 'Screen candidate →').click().run(timeout=30)
+    assert not app.exception
+    assert bool(app.session_state['report']['mandatory_gaps']) == has_gaps
+    assert not app.get('help_info'), 'Streamlit must not render DeltaGenerator documentation.'
+    assert len(app.get('download_button')) == 2
+    assert app.session_state['pdf_bytes'].startswith(b'%PDF')
+    assert '<!doctype html>' in app.session_state['html_bytes']
+    assert app.session_state['report']['recommendation'] in [x.value for x in [*app.warning, *app.success]]
