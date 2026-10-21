@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Proofpoint — Evidence-led resume screening</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Proofpoint home"
+        ><span class="logo">p<span>•</span></span
+        >proofpoint<span class="brand-dot">.</span></a
+      >
+      <div class="workspace-tag">
+        <span class="workspace-icon">S</span>
+        <div>Screening workspace<small>LOCAL WORKSPACE</small></div>
+        <span class="live-dot"></span>
+      </div>
+      <p class="nav-label">WORKSPACE</p>
+      <button class="nav active" data-view="screen">
+        <span>▦</span> Candidate screening
+        <span class="nav-count">1</span></button
+      ><button class="nav" data-view="requirements">
+        <span>☷</span> Job requirements</button
+      ><button class="nav" data-view="method">
+        <span>◈</span> Scoring methodology
+      </button>
+      <div class="sidebar-bottom">
+        <div class="privacy-icon">◇</div>
+        <strong>Your files stay here.</strong>
+        <p>
+          Local processing. No external AI calls. Documents are not saved by the
+          app.
+        </p>
+        <div class="user">
+          <span class="avatar">HR</span>
+          <div>Hiring workspace<small>Human-led decisions</small></div>
+        </div>
+      </div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar">
+        <div>
+          Workspace <span>/</span> <b id="breadcrumb">Candidate screening</b>
+        </div>
+        <span class="local-status"><i></i> Local engine online</span>
+      </header>
+      <main>
+        <section id="screen-view" class="view">
+          <div class="page-heading">
+            <div class="eyebrow">HIRING, WITH EVIDENCE</div>
+            <div class="heading-line">
+              <div>
+                <h1>A clearer view of every candidate.</h1>
+                <p>
+                  Go beyond keywords. See what the resume actually supports.
+                </p>
+              </div>
+              <span class="private-badge">♢ &nbsp; Private by design</span>
+            </div>
+          </div>
+          <div class="steps">
+            <span class="current"><b>1</b> Add your documents</span><i></i
+            ><span id="step-review"><b>2</b> Review requirements</span><i></i
+            ><span id="step-report"><b>3</b> Explore the evidence</span>
+          </div>
+          <div class="upload-grid">
+            <section class="card upload-card">
+              <div class="card-title">
+                <span class="document-icon">▤</span>
+                <div>
+                  <h2>Job description</h2>
+                  <p>The benchmark for a great match</p>
+                </div>
+                <span class="chip">STEP 01</span>
+              </div>
+              <div class="segmented">
+                <button id="default-toggle" class="selected">
+                  Use default JD</button
+                ><button id="custom-toggle">Upload a JD</button>
+              </div>
+              <div id="default-panel" class="default-panel">
+                <span class="file-icon">JD</span>
+                <div>
+                  <strong>Software Development Engineer in Test</strong>
+                  <p>3–12 years · Automation & AI-driven testing</p>
+                  <span class="tiny-green"
+                    >✓ Default job description loaded</span
+                  >
+                </div>
+              </div>
+              <label id="jd-drop" class="dropzone hidden"
+                ><input
+                  id="jd-file"
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt,.md,.rtf,.odt,.html,.htm"
+                /><span class="upload-symbol"
+                  ><svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    aria-hidden="true"
+                  >
+                    <path d="M10 14V3m-4 4 4-4 4 4M3 13v5h14v-5" /></svg></span
+                ><strong>Choose a job description</strong
+                ><span>or drag and drop it here</span></label
+              >
+              <div class="card-footer">
+                <span id="jd-summary">Loading requirements…</span
+                ><button class="text-button" id="review-button">
+                  Review requirements →
+                </button>
+              </div>
+            </section>
+            <section class="card upload-card">
+              <div class="card-title">
+                <span class="document-icon candidate-icon">♙</span>
+                <div>
+                  <h2>Candidate resume</h2>
+                  <p>The experience behind the application</p>
+                </div>
+                <span class="chip">STEP 02</span>
+              </div>
+              <label class="dropzone resume-drop" id="resume-drop"
+                ><input
+                  id="resume-file"
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt,.md,.rtf,.odt,.html,.htm"
+                /><span class="upload-symbol"
+                  ><svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    aria-hidden="true"
+                  >
+                    <path d="M10 14V3m-4 4 4-4 4 4M3 13v5h14v-5" /></svg></span
+                ><strong id="resume-filename">Choose a candidate resume</strong
+                ><span id="resume-caption">or drag and drop it here</span
+                ><small
+                  >PDF, DOCX, DOC, TXT, MD, RTF, ODT, HTML · Up to 10 MB</small
+                ></label
+              >
+              <div class="card-footer">
+                <span id="resume-status"
+                  >♢ &nbsp; Used only for this screening</span
+                ><button class="text-button hidden" id="preview-button">
+                  Review text →
+                </button>
+              </div>
+            </section>
+          </div>
+          <div class="action-bar">
+            <div>
+              <span class="small-shield">✓</span
+              ><span>Evidence first. Every match comes with a reason.</span>
+            </div>
+            <button id="analyze-button" class="primary" disabled>
+              Screen candidate <span>→</span>
+            </button>
+          </div>
+          <button id="reference-button" class="secondary hidden">
+            View attached sample screening →
+          </button>
+          <div id="notice" role="status" class="notice hidden"></div>
+          <section id="empty-state" class="card empty-state">
+            <div class="empty-graphic"><span>≡</span><i>✓</i></div>
+            <div>
+              <h2>From resume to a reasoned recommendation.</h2>
+              <p>
+                Add a resume to uncover project-backed matches, evidence
+                gaps,<br />and the questions worth asking in your next
+                interview.
+              </p>
+            </div>
+            <div class="evidence-legend">
+              <span><i class="dot matched"></i>Matched</span
+              ><span><i class="dot partial"></i>Partial Match</span
+              ><span><i class="dot claimed"></i>Claimed but Unevidenced</span
+              ><span><i class="dot missing"></i>Missing</span>
+            </div>
+          </section>
+          <section id="report-panel" class="hidden" aria-live="polite">
+            <div class="results-heading">
+              <div>
+                <div class="eyebrow">THE EVIDENCE, AT A GLANCE</div>
+                <h2 id="report-candidate">Candidate report</h2>
+                <p id="report-meta"></p>
+              </div>
+              <div class="exports">
+                <a id="export-html" class="secondary" download>↓ HTML report</a
+                ><a id="export-pdf" class="primary" download>↓ PDF report</a>
+              </div>
+            </div>
+            <div class="result-grid">
+              <div class="card score-card">
+                <span class="overline">DOCUMENTED EVIDENCE SCORE</span>
+                <div class="score-number">
+                  <strong id="score">0</strong><span>/ 100</span>
+                </div>
+                <div class="score-track"><div id="score-fill"></div></div>
+                <p id="category-score"></p>
+                <small>Evidence coverage, not a probability of success.</small>
+              </div>
+              <div class="card verdict-card">
+                <span class="overline">SCREENING ASSESSMENT</span>
+                <h3 id="verdict"></h3>
+                <p id="gap-summary"></p>
+                <div class="review-note">
+                  ⓘ &nbsp; A human review is required before a hiring decision.
+                </div>
+              </div>
+            </div>
+            <div class="card matrix-card">
+              <div class="matrix-header">
+                <div>
+                  <h2>Skill-by-skill evidence</h2>
+                  <p>Open a requirement to see the source and the reasoning.</p>
+                </div>
+                <select
+                  id="status-filter"
+                  aria-label="Filter evidence by status"
+                >
+                  <option value="all">All statuses</option>
+                  <option>Matched</option>
+                  <option>Partial Match</option>
+                  <option>Claimed but Unevidenced</option>
+                  <option>Missing</option>
+                </select>
+              </div>
+              <div id="counts" class="counts"></div>
+              <div id="matrix"></div>
+            </div>
+            <div class="report-footnote">
+              <strong>Read the score in context.</strong> Local rules can miss
+              paraphrases. Resume statements are self-reported; project evidence
+              supports a match but does not verify it. Claimed and missing
+              skills receive no score credit.
+            </div>
+          </section>
+        </section>
+        <section id="requirements-view" class="view hidden">
+          <div class="eyebrow">DEFINE THE BENCHMARK</div>
+          <h1>Job requirements</h1>
+          <p class="subtitle">
+            Review the source, separate mandatory skills, and make the matching
+            rules explicit.
+          </p>
+          <div id="review-warning" class="notice">
+            Custom JD extraction is a draft. Review every requirement,
+            alternative, category, and omitted condition before screening.
+          </div>
+          <div class="toolbar">
+            <button id="add-requirement" class="secondary">
+              + Add requirement</button
+            ><button id="approve-jd" class="primary">
+              Approve requirements & return →
+            </button>
+          </div>
+          <div id="requirements-editor"></div>
+          <details class="card source-details">
+            <summary>View full job description</summary>
+            <pre id="jd-source"></pre>
+          </details>
+        </section>
+        <section id="method-view" class="view hidden">
+          <div class="eyebrow">TRANSPARENT BY DESIGN</div>
+          <h1>Evidence over keywords.</h1>
+          <p class="subtitle">
+            A conservative, inspectable rubric that keeps the hiring team in
+            control.
+          </p>
+          <div class="method-grid">
+            <article class="card">
+              <h2>Four evidence statuses</h2>
+              <p>
+                <b>Matched · 100% credit</b><br />A work or project statement
+                describes using the skill with an action and the required
+                facets. An explicit knowledge claim can qualify only where the
+                JD permits it.
+              </p>
+              <p>
+                <b>Partial Match · 50% credit</b><br />Related project evidence
+                exists, but a required facet is absent.
+              </p>
+              <p>
+                <b>Claimed but Unevidenced · 0% credit</b><br />The skill
+                appears in a list or general claim without a concrete work
+                action.
+              </p>
+              <p>
+                <b>Missing · 0% credit</b><br />No positive evidence was found.
+                This is not proof the candidate lacks the skill.
+              </p>
+            </article>
+            <article class="card">
+              <h2>A score you can inspect</h2>
+              <p>
+                Mandatory requirements contribute 80%; good-to-have requirements
+                contribute 20%. Each category uses a weighted average. If one
+                category is absent, the remaining category contributes 100%.
+              </p>
+              <p>
+                Optional matches cannot clear a mandatory gap. A “suitable”
+                assessment requires every mandatory requirement to be matched.
+              </p>
+              <p>
+                Alternatives mean <b>any one</b> may qualify. Required facets
+                must be evidenced together. Employment ranges are unioned so
+                overlaps are not counted twice.
+              </p>
+              <h2>Privacy & boundaries</h2>
+              <p>
+                No external AI service is called. Name, age, nationality,
+                marital status, contact details, and other personal attributes
+                are excluded from scoring. Reports contain job-related excerpts
+                only and expire from app memory after one hour or server
+                restart.
+              </p>
+            </article>
+          </div>
+          <div class="notice">
+            This is a local evidence-rules engine, not a verification service or
+            a general-purpose language model. Review custom JD drafts and
+            extracted text; confirm experience, dates, and outcomes in
+            interview. Scanned documents need OCR.
+          </div>
+        </section>
+        <footer>
+          proofpoint. <span>Thoughtful screening. Human decisions.</span
+          ><small>LOCAL WORKSPACE · v1.0</small>
+        </footer>
+      </main>
+    </div>
+    <dialog id="text-dialog">
+      <div class="dialog-heading">
+        <h2>Review extracted resume text</h2>
+        <button id="close-dialog" class="secondary">Close ×</button>
+      </div>
+      <p>
+        Correct extraction errors before screening. Personal details are not
+        used in scoring.
+      </p>
+      <textarea id="resume-text" aria-label="Extracted resume text"></textarea
+      ><button id="save-text" class="primary">Save corrections</button>
+    </dialog>
+  </body>
+</html>

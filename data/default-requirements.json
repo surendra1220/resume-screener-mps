@@ -1,0 +1,259 @@
+[
+  {
+    "id": "experience",
+    "name": "Relevant experience: 3\u201312 years",
+    "category": "Mandatory",
+    "description": "Experience: 3\u201312 Years Experience",
+    "source": "Experience: 3\u201312 Years Experience",
+    "alternatives": [],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "domain",
+    "name": "Life Sciences / Pharma project experience",
+    "category": "Mandatory",
+    "description": "Life Sciences / Pharma Domain: Should have working experience on Life Sciences (any sub domain under Life sciences) / Pharma / Clinical / Regulatory / Foundry in the respective working projects. Good to have experience in Healthcare domain.",
+    "source": "Life Sciences / Pharma Domain: Should have working experience on Life Sciences (any sub domain under Life sciences) / Pharma / Clinical / Regulatory / Foundry in the respective working projects. Good to have experience in Healthcare domain.",
+    "alternatives": [
+      "life sciences",
+      "life science",
+      "pharma",
+      "pharmaceutical",
+      "clinical",
+      "regulatory",
+      "foundry"
+    ],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "languages",
+    "name": "JavaScript / TypeScript or Python",
+    "category": "Mandatory",
+    "description": "Core Languages (JS/TS or Python): Should be proficient in either JavaScript/TypeScript or Python for building automation solutions. Proficient on any one language can be considered as Matched.  ",
+    "source": "Core Languages (JS/TS or Python): Should be proficient in either JavaScript/TypeScript or Python for building automation solutions. Proficient on any one language can be considered as Matched.  ",
+    "alternatives": ["javascript", "typescript", "python", "JS", "TS"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "framework",
+    "name": "Modern test automation framework",
+    "category": "Mandatory",
+    "description": "Test Frameworks (Playwright / Cypress / Pytest / Selenium): Should have hands-on experience with frameworks like Cypress, Playwright, Pytest, or equivalent modern tools. Should have experience with framework using Playwright. Experience with any one of the frameworks using Selenium or Pytest or Cypress or equivalent can be considered as Matched.  ",
+    "source": "Test Frameworks (Playwright / Cypress / Pytest / Selenium): Should have hands-on experience with frameworks like Cypress, Playwright, Pytest, or equivalent modern tools. Should have experience with framework using Playwright. Experience with any one of the frameworks using Selenium or Pytest or Cypress or equivalent can be considered as Matched.  ",
+    "alternatives": ["playwright", "cypress", "pytest", "selenium"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "design",
+    "name": "Automation framework design",
+    "category": "Mandatory",
+    "description": "Framework Design: Ability to build, scale, and maintain automation frameworks end-to-end.",
+    "source": "Framework Design: Ability to build, scale, and maintain automation frameworks end-to-end.",
+    "alternatives": ["framework"],
+    "all_of": [
+      "build|built|designed|developed|implemented|maintained",
+      "framework"
+    ],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "ui",
+    "name": "UI testing with BDD",
+    "category": "Mandatory",
+    "description": "UI Testing: Well versed with UI/Web testing with BDD frameworks like Cucumber / SpecFlow / any other related frameworks.  ",
+    "source": "UI Testing: Well versed with UI/Web testing with BDD frameworks like Cucumber / SpecFlow / any other related frameworks.  ",
+    "alternatives": [
+      "UI",
+      "web testing",
+      "browser",
+      "Cucumber",
+      "SpecFlow",
+      "BDD",
+      "Gherkin"
+    ],
+    "all_of": [
+      "UI|web|browser",
+      "cucumber|specflow|BDD|gherkin|behavio[u]?r.driven"
+    ],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "api",
+    "name": "REST API testing",
+    "category": "Mandatory",
+    "description": "API Testing: Knowledge of Rest APIs along with tools such as Playwright API / RestAssured / Postman / Insomnia / Mocha.",
+    "source": "API Testing: Knowledge of Rest APIs along with tools such as Playwright API / RestAssured / Postman / Insomnia / Mocha.",
+    "alternatives": [
+      "REST API",
+      "RestAssured",
+      "Rest assured",
+      "Postman",
+      "Insomnia",
+      "Playwright API",
+      "Mocha"
+    ],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "strategy",
+    "name": "STLC, functional and non-functional strategy",
+    "category": "Mandatory",
+    "description": "Testing Strategies: Should be well versed with all STLC phases and best test practices including functional and non-functional tests.  ",
+    "source": "Testing Strategies: Should be well versed with all STLC phases and best test practices including functional and non-functional tests.  ",
+    "alternatives": ["STLC", "test strategy", "functional", "non-functional"],
+    "all_of": [
+      "STLC|test strateg|test lifecycle",
+      "functional",
+      "non.functional|performance|security|load testing"
+    ],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "management",
+    "name": "Test management tools",
+    "category": "Mandatory",
+    "description": "Test Management Tools: Hands on working knowledge of tools like Jira, ALM, TestRail.  ",
+    "source": "Test Management Tools: Hands on working knowledge of tools like Jira, ALM, TestRail.  ",
+    "alternatives": ["Jira", "ALM", "TestRail"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "method",
+    "name": "Agile / Kanban delivery",
+    "category": "Mandatory",
+    "description": "Project Methodology: Working knowledge of project methodologies such as Agile, Kanban, etc.",
+    "source": "Project Methodology: Working knowledge of project methodologies such as Agile, Kanban, etc.",
+    "alternatives": ["Agile", "Kanban", "Scrum"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "ai-solutions",
+    "name": "AI solutions reducing manual effort",
+    "category": "Mandatory",
+    "description": "AI Solutions: Experience in creating AI solutions that helps to reduce manual effort.  ",
+    "source": "AI Solutions: Experience in creating AI solutions that helps to reduce manual effort.  ",
+    "alternatives": ["AI", "artificial intelligence"],
+    "all_of": [
+      "AI|artificial intelligence",
+      "built|created|designed|developed|implemented|enabled",
+      "manual|effort|accelerat|reduc|rapid"
+    ],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "ai-testing",
+    "name": "Testing AI-powered solutions / MCP automation",
+    "category": "Mandatory",
+    "description": "AI Testing: Experience with testing AI powered solutions like Playwright agents or usage of existing MCPs that helps to automate the AI solutions.  ",
+    "source": "AI Testing: Experience with testing AI powered solutions like Playwright agents or usage of existing MCPs that helps to automate the AI solutions.  ",
+    "alternatives": ["AI", "MCP"],
+    "all_of": [
+      "test(?:ed|ing|s)? (?:of |the )?AI|validat.*AI|evaluat.*AI|MCP",
+      "test|automat"
+    ],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "agentic",
+    "name": "Agentic AI / MCP / RAG / prompting",
+    "category": "Mandatory",
+    "description": "Agentic AI: Experience with Agentic based solutions like MCP, RAG, Prompting including testing & developing similar solutions. Knowledge or minimum experience on this can be considered as Matched.",
+    "source": "Agentic AI: Experience with Agentic based solutions like MCP, RAG, Prompting including testing & developing similar solutions. Knowledge or minimum experience on this can be considered as Matched.",
+    "alternatives": [
+      "MCP",
+      "RAG",
+      "prompting",
+      "AI agents",
+      "Planner Agent",
+      "Generator Agent"
+    ],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": true
+  },
+  {
+    "id": "healthcare",
+    "name": "Healthcare domain",
+    "category": "Good to Have",
+    "description": "Good to have experience in Healthcare domain.",
+    "source": "Life Sciences / Pharma Domain: Should have working experience on Life Sciences (any sub domain under Life sciences) / Pharma / Clinical / Regulatory / Foundry in the respective working projects. Good to have experience in Healthcare domain.",
+    "alternatives": ["Healthcare", "health care"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "cloud",
+    "name": "AWS / Azure test environments",
+    "category": "Good to Have",
+    "description": "Cloud Exposure: Working knowledge of AWS/Azure services relevant to test environments.  ",
+    "source": "Cloud Exposure: Working knowledge of AWS/Azure services relevant to test environments.  ",
+    "alternatives": ["AWS", "Azure"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "cicd",
+    "name": "CI/CD test suite integration",
+    "category": "Good to Have",
+    "description": "CI/CD Integration: Integrates test suites into pipelines (Jenkins, GitHub Actions, GitLab CI, etc.).",
+    "source": "CI/CD Integration: Integrates test suites into pipelines (Jenkins, GitHub Actions, GitLab CI, etc.).",
+    "alternatives": ["CI/CD", "Jenkins", "GitHub Actions", "GitLab CI"],
+    "all_of": ["integrat|wired|pipeline", "test|suite|automat"],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "monitoring",
+    "name": "Monitoring / reporting tools",
+    "category": "Good to Have",
+    "description": "Distributed Debugging & Log Analysis: Exposure to Power BI, Splunk / Grafana or other monitoring / reporting tools.  ",
+    "source": "Distributed Debugging & Log Analysis: Exposure to Power BI, Splunk / Grafana or other monitoring / reporting tools.  ",
+    "alternatives": ["Power BI", "Splunk", "Grafana"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "rca",
+    "name": "Root cause analysis",
+    "category": "Good to Have",
+    "description": "Root Cause Analysis: Strong diagnostic skills for complex, multi-system issues, tracing failures across services, logs, and data layers.  ",
+    "source": "Root Cause Analysis: Strong diagnostic skills for complex, multi-system issues, tracing failures across services, logs, and data layers.  ",
+    "alternatives": ["root cause", "failure analysis", "failure diagnostics"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": false
+  },
+  {
+    "id": "lowcode",
+    "name": "No-code / low-code testing",
+    "category": "Good to Have",
+    "description": "No-Code / Low-Code Tools: Knowledge of no code low code tools like MABL, Test Complete.",
+    "source": "No-Code / Low-Code Tools: Knowledge of no code low code tools like MABL, Test Complete.",
+    "alternatives": ["MABL", "TestComplete", "Test Complete"],
+    "all_of": [],
+    "weight": 1,
+    "knowledge_ok": true
+  }
+]

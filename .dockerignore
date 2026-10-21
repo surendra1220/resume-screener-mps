@@ -1,0 +1,9 @@
+.git
+.venv
+work
+attachments
+__pycache__
+.pytest_cache
+.env
+*.pdf
+*.docx
