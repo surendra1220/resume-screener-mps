@@ -12,7 +12,7 @@ from fastapi.responses import HTMLResponse, Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from .documents import extract, DocumentError, MAX_BYTES
-from .engine import analyze, parse_custom_jd
+from .engine import analyze, parse_custom_jd, VERSION
 from .models import AnalyzeRequest, Requirement
 from .reports import html_report, pdf_report, report_filename
 
@@ -46,7 +46,7 @@ async def lifespan(app):
     rates.clear()
 
 
-app = FastAPI(title='Proofpoint Resume Screener', version='1.0.0', lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title='Proofpoint Resume Screener', version=VERSION, lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 
 @app.middleware('http')
@@ -87,7 +87,7 @@ async def document_error(request, exc):
 
 @app.get('/api/health')
 def health():
-    return {'status': 'ok', 'engine': 'local-evidence-rules', 'version': '1.0.0',
+    return {'status': 'ok', 'engine': 'local-evidence-rules', 'version': VERSION,
             'reference_available': bool(os.environ.get('REFERENCE_REPORT_PATH'))}
 
 
@@ -109,7 +109,10 @@ async def upload(file: UploadFile = File(...)):
 @app.post('/api/parse-jd')
 async def jd_upload(file: UploadFile = File(...)):
     result = await upload(file)
-    requirements = parse_custom_jd(result['text'])
+    try:
+        requirements = parse_custom_jd(result['text'])
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
     if not requirements:
         raise HTTPException(422, 'No requirements extracted. Try a clearer document or enter the JD as text.')
     return {**result, 'label': result['filename'], 'requirements': [r.model_dump() for r in requirements], 'needs_review': True}

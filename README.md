@@ -2,6 +2,16 @@
 
 A local, single-user screening application with a curated default SDET job description, editable custom JD requirements, project-level evidence, transparent scores, interview questions, and downloadable HTML/PDF reports.
 
+### Custom JD extraction and evidence scoring
+
+Engine 2.0 extracts source-grounded competencies instead of treating capitalized words as skills. Headings, job metadata and reporting relationships do not score. Each matrix expectation retains the JD wording. Explicit preferences (including “added advantage” and “Nice to Haves”) and optional parentheticals are classified separately. Repeated identical requirements are deduplicated; complex JDs exceeding the supported limits raise a review error rather than silently dropping requirements.
+
+Accepted aliases are OR alternatives **within** an AND facet. Local OR lists and example tools do not replace another clause's conditions. Review comma-separated tool lists where the JD does not say whether all tools or any tool is required. Familiarity/exposure requirements accept explicit claims only when their facets are covered. Other skills need action in work context; custom facets can span statements in one role, with exact source excerpts. Education does not need an action verb. A total employment timeline alone does not establish skill-specific tenure.
+
+The shared parser and scorer run in both FastAPI and Streamlit. The Streamlit benchmark shows the extracted Skill / Area, source Expectation, category, alternatives and required facets before approval. Engine changes invalidate session benchmarks and reports. Scores remain a weighted percentage from 0 to 100; they are never adjusted to reach a desired candidate score.
+
+This remains a local rules engine with a vocabulary for common technologies and competencies and a content-phrase fallback for unfamiliar domains. It does not provide universal semantic understanding: reviewers must check omitted conditions, aliases, education equivalence and ambiguous lists against the source before screening. Document instructions are treated as data and excluded from scoring.
+
 **Streamlit hosting:** A separate session-isolated Streamlit interface is available in `streamlit_app.py`. See [STREAMLIT_DEPLOY.md](STREAMLIT_DEPLOY.md) for Community Cloud settings and hosted data-handling details. The local-server deployment limits described below apply to the original FastAPI surface.
 
 ## Run locally

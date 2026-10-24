@@ -5,12 +5,12 @@ from datetime import date, datetime, timezone
 from hashlib import sha256
 from .models import Requirement
 
-VERSION = '1.0.0'
+VERSION = '2.0.0'
 POINTS = {'Matched': 1, 'Partial Match': .5, 'Claimed but Unevidenced': 0, 'Missing': 0}
 ACTION = re.compile(r'\b(built|build|designed|developed|implemented|automated|tested|integrated|maintained|worked|utilized|used|enabled|applied|supported|collaborated|participated|mentored|executed|validated|wired|converted|performed|created|led|managed|deployed|analyzed|analysed)\b', re.I)
 INSTRUCTION = re.compile(r'ignore (?:all|previous|prior)|system prompt|you (?:must|should|are)|assign (?:a |the )?score|mark (?:me|all|the candidate)|rank (?:me|this)|instruction to|override .*score', re.I)
 PROJECT = re.compile(r'professional experience|work experience\s*$|employment|roles\s*&?\s*responsibilities|project(?:s|\s*\d+| experience)?\s*:?$|employment history', re.I)
-NONPROJECT = re.compile(r'^(?:technical skills|skills|summary|profile|education|certifications?|accomplishments|personal details|declaration|awards|languages known)\s*:?$', re.I)
+NONPROJECT = re.compile(r'^(?:technical skills|core competencies|professional summary|skills|summary|profile|education|certifications?|accomplishments|personal details|declaration|awards|languages known)\s*:?$', re.I)
 
 
 def contains(text, alias):
@@ -33,7 +33,20 @@ def evidence_units(text):
             section, project = line, True
         elif len(line) < 100 and re.search(r'\(\d{1,2}/\d{1,2}/\d{4}\s*[-–]', line):
             section, project = line, True
-        units.append({'line': n, 'quote': line, 'section': section, 'project': project, 'page': page})
+        # PDF line wrapping: retain exact source substrings, including whitespace.
+        # Merge only continuation lines inside a work section, never new bullets,
+        # role headings, page boundaries, or instructions.
+        if (units and project and units[-1]['project'] and units[-1]['section'] == section
+                and units[-1]['page'] == page and not re.match(r'^\s*[•·●▪*-]', raw)
+                and units[-1]['quote'].rstrip(':') != section.rstrip(':')
+                and not re.search(r'[.!?]$', units[-1]['quote'])
+                and not INSTRUCTION.search(raw) and not INSTRUCTION.search(units[-1]['quote'])
+                and not re.search(r'\b(?:19|20)\d{2}\b', raw)
+                and not re.search(r'\b(?:19|20)\d{2}\b', units[-1]['quote'])):
+            previous = units[-1]
+            previous['quote'] = '\n'.join(text.splitlines()[previous['line']-1:n]).strip(' \t•·-*#')
+        else:
+            units.append({'line': n, 'quote': line, 'section': section, 'project': project, 'page': page})
     return units
 
 
@@ -63,23 +76,30 @@ def experience_result(req, text, units, today):
                 covered.update(range(start, end + 1))
                 quotes.append(unit)
     bounds = re.search(r'(\d+)\s*[-–]\s*(\d+)\s*(?:years?|yrs?)', req.description, re.I)
-    if covered and bounds:
+    minimum = re.search(r'(\d+)\s*\+?\s*(?:years?|yrs?)', req.description, re.I)
+    if covered and (bounds or minimum):
         years = len(covered) / 12
-        low, high = map(int, bounds.groups())
+        low, high = map(int, bounds.groups()) if bounds else (int(minimum.group(1)), float('inf'))
         status = 'Matched' if low <= years <= high else 'Partial Match'
+        if req.id.startswith('custom-experience-'):
+            # A total timeline cannot establish the same duration in every JD skill.
+            status = 'Partial Match'
         return status, quotes[:4], f'Employment timeline covers approximately {years:.1f} years (overlaps counted once; through {today:%B %Y}). Role relevance and skill-specific tenure need verification.'
     claims = [u for u in units if re.search(r'\d+\+?\s*(?:years?|yrs?)', u['quote'], re.I)]
     return ('Claimed but Unevidenced' if claims else 'Missing'), claims[:2], 'A claimed total is not a verified, non-overlapping employment timeline. Confirm the dates and relevant tenure.'
 
 
 def assess(req, text, units, today):
-    if req.id == 'experience':
+    if req.id == 'experience' or req.id.startswith('custom-experience-'):
         status, quotes, reason = experience_result(req, text, units, today)
     else:
         terms = req.alternatives or [req.name]
         hits = [u for u in units if any(contains(u['quote'], x) for x in terms) and not INSTRUCTION.search(u['quote'])]
         positive = [u for u in hits if not negated(u['quote'], terms)]
-        project_hits = [u for u in positive if u['project'] and ACTION.search(u['quote'])]
+        project_hits = [u for u in positive if u['project'] and (ACTION.search(u['quote']) or (req.id.startswith('custom-') and re.search(r'\b(architected|governed|established|acted|drove|engaged|prepared|customized|generated|mentoring|defining|collaborating)\b', u['quote'], re.I)))]
+        qualification = req.id.startswith('custom-qualification-')
+        if qualification:
+            project_hits = positive
         # All required facets must be in the same evidence unit; never borrow a keyword from another project.
         # all_of is reviewer-editable plain alternatives, escaped to avoid regex injection/ReDoS.
         def facets(u):
@@ -88,10 +108,18 @@ def assess(req, text, units, today):
                 return all(any(contains(u['quote'], part.strip()) for part in facet.split('|')) for facet in req.all_of)
             return all(re.search(p, u['quote'], re.I) for p in patterns)
         full = [u for u in project_hits if facets(u)]
-        knowledge = [u for u in positive if re.search(r'\b(knowledge|familiar|understanding|experience|worked|implemented|developed|utilized)\b', u['quote'], re.I)]
+        # Custom competencies may be evidenced by several statements in ONE role.
+        # Keep every excerpt separate and never borrow facets across employers.
+        if req.id.startswith('custom-') and not full and project_hits and req.all_of:
+            for section in dict.fromkeys(u['section'] for u in project_hits):
+                role_units = [u for u in project_hits if u['section'] == section and u['project']]
+                if all(any(any(contains(u['quote'], part.strip()) for part in facet.split('|')) for u in role_units) for facet in req.all_of):
+                    full = role_units
+                    break
+        knowledge = [u for u in positive if (req.id.startswith('custom-') or re.search(r'\b(knowledge|familiar|understanding|experience|worked|implemented|developed|utilized|exposure)\b', u['quote'], re.I)) and facets(u)]
         if full:
-            status, quotes = 'Matched', full[:3]
-            reason = 'Work/project context describes an action using this skill and covers the required facets. This is resume evidence, not independent verification.'
+            status, quotes = 'Matched', full
+            reason = 'Resume evidence covers the required facets within one work/education context. This is self-reported evidence, not independent verification.'
         elif req.knowledge_ok and knowledge:
             status, quotes = 'Matched', knowledge[:3]
             reason = 'The JD explicitly accepts knowledge or minimal experience; the resume makes an explicit knowledge/usage claim. Verify depth in interview.'
@@ -104,6 +132,11 @@ def assess(req, text, units, today):
                 missing = [label for pattern, label in zip(patterns, FACET_LABELS[req.id]) if not re.search(pattern, best['quote'], re.I)]
                 if missing:
                     reason += ' Not shown in the strongest excerpt: ' + '; '.join(missing) + '.'
+            elif req.all_of:
+                best_section = max(dict.fromkeys(u['section'] for u in project_hits), key=lambda section: sum(any(any(contains(u['quote'], p.strip()) for p in f.split('|')) for u in positive if u['section'] == section) for f in req.all_of))
+                missing = [f for f in req.all_of if not any(any(contains(u['quote'], p.strip()) for p in f.split('|')) for u in positive if u['section'] == best_section)]
+                if missing:
+                    reason += ' Not evidenced in the strongest role: ' + '; '.join(missing) + '.'
         elif positive:
             status, quotes = 'Claimed but Unevidenced', positive[:3]
             reason = 'Mentioned in a summary, skills list or general claim, without a concrete action in project/work context.'
@@ -155,52 +188,11 @@ def analyze(request, today=None):
             'generated_at': datetime.now(timezone.utc).isoformat(), 'engine_version': VERSION,
             'score': score, 'scores': scores, 'recommendation': recommendation, 'mandatory_gaps': gaps,
             'requirements': rows, 'counts': {s: sum(r['status'] == s for r in rows) for s in POINTS},
-            'method': 'Conservative local rules; project context + action + required facets. Matched 100%, Partial 50%, Claimed/Missing 0%. Mandatory contributes 80%; Good to Have 20%, normalized if a category is absent. Weights apply within each category. Mandatory gaps prevent a suitable verdict.',
+            'method': 'Source-grounded JD requirements; work context + action + required facets. Custom facets may be supported across statements within the same role, never across employers. Education is assessed without a project-action condition. Knowledge claims qualify only when the JD accepts knowledge/exposure and all facets are covered. Matched 100%, Partial 50%, Claimed/Missing 0%. Mandatory contributes 80%; Good to Have 20%, normalized if a category is absent. Weights apply within each category. Mandatory gaps prevent a suitable verdict.',
             'limitations': ['Resume evidence is self-reported and not independently verified.', 'Local rules may miss paraphrases or ambiguous layouts; review extracted text and the requirement matrix.', 'Skill-specific duration and project domain cannot be inferred from total tenure.', 'Scanned files require OCR; no candidate identity or sensitive personal attributes are used in scoring.'],
             'document_warnings': ['Instruction-like text was excluded from evidence.'] if any(INSTRUCTION.search(u['quote']) for u in units) else [],
             'jd_sha256': sha256(request.jd_text.encode()).hexdigest(), 'resume_sha256': sha256(request.resume_text.encode()).hexdigest()}
 
 
-def parse_custom_jd(text):
-    """Extract draft requirements; reviewer must approve these before scoring."""
-    category, result = 'Mandatory', []
-    for raw in text.splitlines():
-        line = raw.strip(' #•-*\t')
-        if not line:
-            continue
-        if re.fullmatch(r'(?:\d+[.)]?\s*)?(?:good.to.have|nice.to.have|preferred|desirable|optional)(?:\s+skills|\s+requirements|\s+qualifications)?\s*:', line, re.I) or re.fullmatch(r'(?:good.to.have|nice.to.have|preferred|desirable|optional)(?:\s+skills|\s+requirements|\s+qualifications)?', line, re.I):
-            category = 'Good to Have'
-            continue
-        if re.fullmatch(r'(?:must.have|mandatory|required|requirements)(?:\s+skills|\s+requirements|\s+qualifications)?\s*:?|job requirements\s*:?', line, re.I):
-            category = 'Mandatory'
-            continue
-        for sentence in re.split(r'(?<=[.;])\s+(?=[A-Z])', line):
-            sentence = sentence.replace('**', '')
-            if len(sentence) < 20 or re.match(r'^(?:role|job title|location|salary|about us|benefits)\s*:', sentence, re.I):
-                continue
-            # A literal draft, not a silent assertion that nuanced requirements were understood.
-            name = sentence.split(':', 1)[0] if ':' in sentence else sentence[:100]
-            phrases = [skill for skill in CUSTOM_SKILLS if contains(sentence, skill)]
-            if not phrases:
-                phrases = re.findall(r'\b(?:[A-Z][A-Za-z+#.]*|CI/CD|[a-z]+(?:\.js))\b', sentence)
-            phrases = [p for p in phrases if p.lower() not in {'the', 'must', 'should', 'experience', 'knowledge', 'ability', 'strong', 'working', 'proficient', 'we', 'you', 'years'}]
-            phrases = list(dict.fromkeys(phrases))[:15] or [name]
-            optional = 'Good to Have' if re.search(r'preferred|good.to.have|nice.to.have|optional', sentence, re.I) else category
-            # Explicit OR/equivalent/slash lists stay alternatives; conjunctions never silently become OR.
-            is_or = bool(re.search(r'\bor\b|equivalent|either|any one|\w\s*/\s*\w', sentence.replace('CI/CD', ''), re.I))
-            groups = [phrases] if is_or or len(phrases) == 1 else [[p] for p in phrases]
-            for group in groups:
-                result.append(Requirement(id=f'custom-{len(result)+1}', name=name if len(groups)==1 else group[0], description=sentence, source=sentence,
-                                          category=optional, alternatives=group))
-    return result[:60]
-
-
-CUSTOM_SKILLS = ['JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'C++', 'SQL', 'Go', 'Rust',
- 'Playwright', 'Cypress', 'Pytest', 'Selenium', 'Cucumber', 'SpecFlow', 'BDD', 'Postman', 'RestAssured',
- 'Jira', 'TestRail', 'ALM', 'Agile', 'Kanban', 'Scrum', 'STLC', 'AWS', 'Azure', 'GCP', 'Docker',
- 'Kubernetes', 'Jenkins', 'GitHub Actions', 'GitLab CI', 'CI/CD', 'Git', 'React', 'Angular', 'Vue',
- 'Node.js', 'Django', 'Flask', 'FastAPI', 'Spring', 'REST', 'GraphQL', 'API testing', 'UI testing',
- 'performance testing', 'security testing', 'test strategy', 'framework design', 'MongoDB', 'PostgreSQL',
- 'MySQL', 'Redis', 'Splunk', 'Grafana', 'Power BI', 'TestComplete', 'MABL', 'MCP', 'RAG', 'prompting',
- 'AI agents', 'machine learning', 'TensorFlow', 'PyTorch', 'Healthcare', 'Life Sciences', 'Pharma',
- 'Clinical', 'Regulatory', 'Foundry', 'Salesforce', 'SAP', 'Excel', 'communication', 'stakeholder management']
+# Shared parser for FastAPI and Streamlit.
+from .jd import parse_custom_jd

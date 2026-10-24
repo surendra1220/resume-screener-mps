@@ -7,3 +7,6 @@ work/*
 !work/.gitkeep
 *.pyc
 data/sample*
+.local-output/
+test-temp/
+pytest-cache-files-*/

@@ -7,7 +7,7 @@ from pathlib import Path
 import streamlit as st
 from pydantic import ValidationError
 from app.documents import extract, DocumentError, MAX_BYTES
-from app.engine import analyze, parse_custom_jd
+from app.engine import analyze, parse_custom_jd, VERSION
 from app.models import AnalyzeRequest
 from app.reports import html_report, pdf_report, report_filename
 from app.streamlit_support import DEMO_RESUME, editor_rows, reviewed_requirements, fingerprint
@@ -113,7 +113,7 @@ try:
                 resume_text = st.text_area('Extracted resume text', resume_text, height=280, key=text_key, max_chars=120000)
 
     st.subheader('3. Review the benchmark')
-    source_key = fingerprint(jd_text)
+    source_key = fingerprint(jd_text, VERSION)
     if st.session_state.get('jd_source_key') != source_key:
         st.session_state.pop('requirements_editor', None)
         st.session_state.pop('approve_requirements', None)
@@ -121,14 +121,20 @@ try:
         clear_screening()
     if jd_mode != 'Default SDET JD':
         st.warning('Custom extraction is a draft. Check categories, alternatives, required facets, and omitted conditions before approving.')
+        mandatory = sum(r['category'] == 'Mandatory' for r in originals)
+        st.caption(f"Extracted {len(originals)} requirements: {mandatory} mandatory and {len(originals)-mandatory} preferences. Engine {VERSION}. Each expectation retains its source JD wording.")
+        with st.expander('Inspect extracted expectations and source wording'):
+            for requirement in originals:
+                st.text(f"{requirement['name']} · {requirement['category']}")
+                st.text(requirement['source'])
     st.caption('Alternatives are comma-separated (OR). Required facets are semicolon-separated (AND); | means OR inside a facet. Default facets use audited rules; editing them switches to literal matching.')
     edited = st.data_editor(editor_rows(originals), key='requirements_editor', num_rows='dynamic', hide_index=True, width='stretch',
         column_config={
             'id': None,
-            'name': st.column_config.TextColumn('Requirement', required=True),
+            'name': st.column_config.TextColumn('Skill / Area', required=True),
             'category': st.column_config.SelectboxColumn('Category', options=['Mandatory', 'Good to Have'], required=True),
             'weight': st.column_config.NumberColumn('Weight', min_value=1, max_value=10, step=1, required=True),
-            'description': st.column_config.TextColumn('JD requirement', required=True, width='large'),
+            'description': st.column_config.TextColumn('Expectation from JD', required=True, width='large'),
             'alternatives': st.column_config.TextColumn('Accepted alternatives', width='large'),
             'all_of': st.column_config.TextColumn('Required facets', width='large'),
             'knowledge_ok': st.column_config.CheckboxColumn('JD accepts knowledge'),
@@ -139,7 +145,7 @@ try:
         st.session_state['benchmark'] = benchmark
         st.session_state.pop('approve_requirements', None)
     approved = st.checkbox('I have reviewed the requirements, alternatives, categories, and source JD.', key='approve_requirements')
-    signature = fingerprint(jd_text, resume_text, benchmark, candidate_label)
+    signature = fingerprint(jd_text, resume_text, benchmark, candidate_label, VERSION)
     if st.session_state.get('report_signature') != signature:
         clear_screening()
 
@@ -164,7 +170,7 @@ if report:
     st.divider()
     st.subheader(f'Screening report · {report["candidate"]}')
     c1, c2, c3 = st.columns(3)
-    c1.metric('Evidence coverage', f'{report["score"]} / 100')
+    c1.metric('Evidence coverage', f'{report["score"]:.1f} / 100')
     c2.metric('Mandatory coverage', f'{report["scores"]["Mandatory"]}%' if report['scores']['Mandatory'] is not None else 'N/A')
     c3.metric('Good-to-have coverage', f'{report["scores"]["Good to Have"]}%' if report['scores']['Good to Have'] is not None else 'N/A')
     if report['mandatory_gaps']:
