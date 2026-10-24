@@ -112,6 +112,9 @@ def test_minimum_tenure_is_not_verified_for_every_platform():
                'PROFESSIONAL EXPERIENCE:\nAcme | Apr 2011 – Present\nDeveloped web automation tests using Selenium.')
     assert r['requirements'][0]['status'] == 'Partial Match'
     assert '15.6 years' in r['requirements'][0]['reason']
+    from app.reports import audit_view, html_report
+    assert audit_view(r)['experience'] == '15.6 yrs (employment timeline)'
+    assert '15.6 yrs (employment timeline)' in html_report(r)
 
 
 def test_tools_are_not_confused_with_areas_or_substrings():

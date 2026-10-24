@@ -45,7 +45,7 @@ def audit_view(report):
     breakdown = ' + '.join(f"{row['category']} {row['earned']:.2f}/{row['maximum']:g} ({row['coverage']:g}% coverage)" for row in arithmetic)
     breakdown += f" → Raw: {raw:.2f}/100 → Final: {report['score']:.1f}/100"
     experience = 'Not established'
-    exp_row = next((r for r in report['requirements'] if r['id'] == 'experience'), None)
+    exp_row = next((r for r in report['requirements'] if r['id'] == 'experience' or r['id'].startswith('custom-experience-')), None)
     if exp_row:
         match = re.search(r'approximately (\d+(?:\.\d+)?) years', exp_row['reason'])
         if match:
