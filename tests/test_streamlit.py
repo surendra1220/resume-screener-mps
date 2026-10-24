@@ -28,10 +28,12 @@ def test_jd_category_applicability_is_explained_in_results(monkeypatch, include_
     assert not app.exception
     expected = '0.0%' if include_preferences else 'Not applicable'
     assert next(m for m in app.metric if m.label == 'Good-to-have coverage').value == expected
-    assert app.session_state['report']['score'] == (80 if include_preferences else 100)
+    assert app.session_state['report']['score'] == (50 if include_preferences else 100)
     formulas = [m.value for m in app.markdown]
-    expected_formula = 'Final score = (100 × 80%) + (0 × 20%) = 80.0/100' if include_preferences else 'Final score = (100 × 100%) = 100.0/100'
+    expected_formula = 'Overall evidence coverage = 100 × (1 + 0.5 × 0) ÷ 2 = 50.0/100' if include_preferences else 'Overall evidence coverage = 100 × (1 + 0.5 × 0) ÷ 1 = 100.0/100'
     assert any(expected_formula in s for s in formulas)
+    assert next(m for m in app.metric if m.label == 'Matched').value == '1'
+    assert next(m for m in app.metric if m.label == 'Missing').value == ('1' if include_preferences else '0')
     options = next(s for s in app.selectbox if s.label == 'Requirement type').options
     assert ('Good to Have' in options) == include_preferences
     if not include_preferences:

@@ -257,15 +257,6 @@ function renderEditor() {
     });
     cat.append(select);
     row.append(cat);
-    const weight = field(
-      "Weight",
-      r.weight,
-      (v) => (r.weight = Math.max(1, Math.min(10, Number(v) || 1))),
-    );
-    weight.querySelector("input").type = "number";
-    weight.querySelector("input").min = 1;
-    weight.querySelector("input").max = 10;
-    row.append(weight);
     card.append(
       row,
       field(

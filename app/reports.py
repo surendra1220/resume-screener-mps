@@ -12,6 +12,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, Table, TableStyle
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen.canvas import Canvas
+from .scoring import calculate_scoring, CREDITS
 
 FONT_DIR = Path(__file__).parent / 'static/fonts'
 for name, filename in [('OpenSans', 'OpenSans-Regular.ttf'), ('OpenSans-Bold', 'OpenSans-Bold.ttf'), ('OpenSans-Italic', 'OpenSans-Italic.ttf')]:
@@ -34,16 +35,14 @@ def audit_view(report):
     if stamp.tzinfo is None:
         stamp = stamp.replace(tzinfo=timezone.utc)
     stamp = stamp.astimezone(IST)
-    active = [(category, weight) for category, weight in [('Mandatory', 80), ('Good to Have', 20)] if report['scores'].get(category) is not None]
-    total = sum(weight for _, weight in active)
-    arithmetic = []
-    for category, weight in active:
-        maximum = 100 * weight / total
-        arithmetic.append({'category': category, 'coverage': report['scores'][category], 'maximum': maximum,
-                           'earned': report['scores'][category] * maximum / 100})
-    raw = sum(row['earned'] for row in arithmetic)
-    breakdown = ' + '.join(f"{row['category']} {row['earned']:.2f}/{row['maximum']:g} ({row['coverage']:g}% coverage)" for row in arithmetic)
-    breakdown += f" → Raw: {raw:.2f}/100 → Final: {report['score']:.1f}/100"
+    scoring = calculate_scoring(report['requirements'])
+    arithmetic = [dict(status=status, count=scoring['counts'][status], credit=credit,
+                       earned=scoring['counts'][status] * credit) for status, credit in CREDITS.items()]
+    raw = scoring['raw_score']
+    terms = ' + '.join(f"{row['status']} {row['count']} × {row['credit']:g}" for row in arithmetic)
+    breakdown = f"100 × ({terms}) ÷ {scoring['total_requirements']} requirements → Raw: {raw:.2f}/100 → Final: {report['score']:.1f}/100. Category coverage is separate."
+    diagnostics = '; '.join(f"{category}: {coverage:g}%" if coverage is not None else f"{category}: Not applicable" for category, coverage in report['scores'].items())
+    breakdown += ' Separate category diagnostics (not used in overall): ' + diagnostics + '.'
     experience = 'Not established'
     exp_row = next((r for r in report['requirements'] if r['id'] == 'experience' or r['id'].startswith('custom-experience-')), None)
     if exp_row:
@@ -71,7 +70,7 @@ def html_report(report):
     for row in report['requirements']:
         evidence = ''.join(f'<p class="excerpt">{esc(unit["quote"])}<span class="source">{esc(unit["section"])} · Line {unit["line"]}{" · " + esc(unit["page"]) if unit.get("page") else ""}</span></p>' for unit in row['evidence']) or '<p>No positive supporting excerpt found.</p>'
         matrix.append(f'<tr><th scope="row">{esc(row["name"])}</th><td>{esc(row["description"])}</td><td>{esc(row["category"])}</td><td class="status" style="color:{STATUS_COLORS[row["status"]]}">{esc(row["status"])}</td><td>{evidence}</td></tr>')
-        details.append(f'<article class="audit-detail"><h4>{esc(row["name"])} — {esc(row["status"])}</h4><p><strong>Assessment:</strong> {esc(row["reason"])}</p><p><strong>Interview question:</strong> {esc(row["question"])}</p><p class="source">Category: {esc(row["category"])} · Weight: {row["weight"]} · Credit: {row["credit"] * 100:g}%</p></article>')
+        details.append(f'<article class="audit-detail"><h4>{esc(row["name"])} — {esc(row["status"])}</h4><p><strong>Assessment:</strong> {esc(row["reason"])}</p><p><strong>Interview question:</strong> {esc(row["question"])}</p><p class="source">Category: {esc(row["category"])} · Credit: {row["credit"] * 100:g}%</p></article>')
     limitations = ''.join(f'<li>{esc(note)}</li>' for note in report['limitations'] + report['document_warnings'])
     return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Candidate Screening Audit Report — {esc(report['candidate'])}</title>
 <style>
@@ -147,7 +146,7 @@ def pdf_report(report):
               p(f"Total Experience: {view['experience']} | Final Score: {report['score']:.1f} / 100"), p('Score Breakdown: ' + view['breakdown']), p('Override Decision: ' + view['decision']),
               p('Experience is assessed within the JD requirement matrix, not added as a separate bonus.', 'small'), p('Requirement reasoning & interview checks', 'sub')]
     for row in report['requirements']:
-        story += [p(f"{row['name']} — {row['status']}", 'sub'), p('Assessment: ' + row['reason']), p('Interview question: ' + row['question']), p(f"Category: {row['category']} | Weight: {row['weight']} | Credit: {row['credit'] * 100:g}%", 'small')]
+        story += [p(f"{row['name']} — {row['status']}", 'sub'), p('Assessment: ' + row['reason']), p('Interview question: ' + row['question']), p(f"Category: {row['category']} | Credit: {row['credit'] * 100:g}%", 'small')]
     story += [p('Scoring method & review limitations', 'sub'), p(report['method'])]
     story.extend(p('• ' + note) for note in report['limitations'] + report['document_warnings'])
     story.extend(p(line, 'small') for line in [f"Generated: {view['generated']} | Engine: {report['engine_version']} | Report: {report['id']}", 'JD SHA256: ' + report['jd_sha256'], 'Resume SHA256: ' + report['resume_sha256']])

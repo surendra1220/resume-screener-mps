@@ -1,5 +1,5 @@
-"""Shared score arithmetic. Applicability comes from JD requirements, not resume hits."""
-CATEGORY_WEIGHTS = {'Mandatory': 80, 'Good to Have': 20}
+"""Count-based evidence coverage. Category diagnostics never feed the overall score."""
+CATEGORIES = ('Mandatory', 'Good to Have')
 CREDITS = {'Matched': 1, 'Partial Match': .5, 'Claimed but Unevidenced': 0, 'Missing': 0}
 MANDATORY_THRESHOLD = 40
 SUITABLE = 'Suitable on documented evidence — verify in interview'
@@ -8,21 +8,24 @@ INSUFFICIENT = 'Insufficient documented fit — substantial mandatory gaps'
 
 
 def calculate_scoring(rows):
-    categories = []
-    for category, base_weight in CATEGORY_WEIGHTS.items():
-        subset = [r for r in rows if r['category'] == category]
-        total = sum(r['weight'] for r in subset)
-        earned = sum(r['credit'] * r['weight'] for r in subset)
-        categories.append(dict(category=category, requirement_count=len(subset), applicable=bool(subset),
-                               base_weight=base_weight, total_weight=total, earned_weight=earned,
-                               coverage=round(100 * earned / total, 1) if subset else None))
-    active_weight = sum(r['base_weight'] for r in categories if r['applicable'])
-    if not active_weight:
+    if not rows:
         raise ValueError('At least one JD requirement is needed to calculate a score.')
-    for row in categories:
-        row['allocation'] = 100 * row['base_weight'] / active_weight if row['applicable'] else 0
-        row['contribution'] = row['coverage'] * row['allocation'] / 100 if row['applicable'] else 0
-    return {'categories': categories, 'overall_score': round(sum(r['contribution'] for r in categories), 1)}
+    counts = {status: sum(r['status'] == status for r in rows) for status in CREDITS}
+    if sum(counts.values()) != len(rows):
+        raise ValueError('Every requirement must have one recognized evidence status.')
+    earned = sum(counts[status] * credit for status, credit in CREDITS.items())
+    raw_score = 100 * earned / len(rows)
+    categories = []
+    for category in CATEGORIES:
+        subset = [r for r in rows if r['category'] == category]
+        category_earned = sum(CREDITS[r['status']] for r in subset)
+        categories.append(dict(category=category, requirement_count=len(subset), applicable=bool(subset),
+                               earned_credits=category_earned,
+                               coverage=round(100 * category_earned / len(subset), 1) if subset else None))
+    return {'basis': 'requirement-counts', 'counts': counts, 'total_requirements': len(rows),
+            'earned_credits': earned, 'raw_score': raw_score,
+            'not_matching_count': counts['Claimed but Unevidenced'] + counts['Missing'],
+            'categories': categories, 'overall_score': round(raw_score, 1)}
 
 
 def verdict(scores, mandatory_gaps):

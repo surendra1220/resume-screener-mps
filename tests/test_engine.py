@@ -42,7 +42,7 @@ def test_ai_word_boundary():
 def test_mandatory_gate_even_high_optional():
  rs=[Requirement(id='a',name='Python',description='Python required',alternatives=['Python']),Requirement(id='b',name='SQL',description='SQL preferred',alternatives=['SQL'],category='Good to Have')]
  r=screen('PROJECTS:\nDeveloped SQL tests for the platform. No Python experience.',rs)
- assert r['score']==20 and r['mandatory_gaps']==['Python'] and 'Suitable on' not in r['recommendation']
+ assert r['score']==50 and r['mandatory_gaps']==['Python'] and 'Suitable on' not in r['recommendation']
 def test_dates_overlap_not_double_counted():
  r=row('PROFESSIONAL EXPERIENCE:\nJan 2020 - Dec 2022\nJan 2021 - Dec 2023\nDeveloped Python tests for a major platform.','experience')
  assert '4.0 years' in r['reason']

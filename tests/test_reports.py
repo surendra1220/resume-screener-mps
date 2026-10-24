@@ -53,18 +53,21 @@ def test_reference_sections_and_actual_data_match_in_both_exports(report):
 
 def test_arithmetic_uses_existing_scoring_not_reference_values(report):
     view = audit_view(report)
-    assert [item['maximum'] for item in view['arithmetic']] == [80, 20]
+    assert sum(item['count'] for item in view['arithmetic']) == len(report['requirements'])
+    assert [item['credit'] for item in view['arithmetic']] == [1, .5, 0, 0]
     assert round(view['raw'], 1) == report['score']
     assert f"Final: {report['score']:.1f}/100" in view['breakdown']
     assert '6.8 yrs' in view['experience']
     assert '91.0/100' not in view['breakdown']
 
 
-def test_single_category_normalizes_to_100(report):
+def test_category_diagnostics_do_not_affect_report_arithmetic(report):
+    before = audit_view(report)
     report['scores'] = {'Mandatory': 50, 'Good to Have': None}
-    report['score'] = 50
     view = audit_view(report)
-    assert view['arithmetic'] == [dict(category='Mandatory', coverage=50, maximum=100, earned=50)]
+    assert view['arithmetic'] == before['arithmetic']
+    assert view['raw'] == before['raw']
+    assert 'Category coverage is separate' in view['breakdown']
 
 
 def test_all_evidence_and_reasoning_is_retained_and_html_escaped(report):

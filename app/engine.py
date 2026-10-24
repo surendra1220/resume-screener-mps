@@ -6,7 +6,7 @@ from hashlib import sha256
 from .models import Requirement
 from .scoring import calculate_scoring, verdict, CREDITS
 
-VERSION = '2.1.0'
+VERSION = '3.0.0'
 POINTS = CREDITS
 ACTION = re.compile(r'\b(built|build|designed|developed|implemented|automated|tested|integrated|maintained|worked|utilized|used|enabled|applied|supported|collaborated|participated|mentored|executed|validated|wired|converted|performed|created|led|managed|deployed|analyzed|analysed)\b', re.I)
 INSTRUCTION = re.compile(r'ignore (?:all|previous|prior)|system prompt|you (?:must|should|are)|assign (?:a |the )?score|mark (?:me|all|the candidate)|rank (?:me|this)|instruction to|override .*score', re.I)
@@ -183,8 +183,8 @@ def analyze(request, today=None):
             'screened_files': [request.resume_filename] if request.resume_filename else [],
             'generated_at': datetime.now(timezone.utc).isoformat(), 'engine_version': VERSION,
             'score': score, 'scores': scores, 'scoring': scoring, 'recommendation': recommendation, 'mandatory_gaps': gaps,
-            'requirements': rows, 'counts': {s: sum(r['status'] == s for r in rows) for s in POINTS},
-            'method': 'Source-grounded JD requirements; work context + action + required facets. Custom facets may be supported across statements within the same role, never across employers. Education is assessed without a project-action condition. Knowledge claims qualify only when the JD accepts knowledge/exposure and all facets are covered. Matched 100%, Partial 50%, Claimed/Missing 0%. Category coverage = 100 x sum(credit x weight) / sum(weights). When both categories are in the JD, Mandatory contributes 80% and Good to Have 20%. A category absent from the JD is not applicable and excluded; the remaining category contributes 100%. Good-to-have requirements present in the JD but absent from the resume remain in the calculation with zero credit. Mandatory coverage below 40% gives insufficient documented fit; otherwise unresolved mandatory gaps give conditional fit, and no mandatory gaps gives suitable on documented evidence. Scores and verdicts require human review.',
+            'requirements': rows, 'counts': scoring['counts'],
+            'method': 'Count-based evidence coverage: 100 x (Matched count + 0.5 x Partial Match count) / Total JD requirements. Claimed but Unevidenced and Missing earn zero credit and stay in the total. Every requirement counts equally; category labels and requirement weights do not influence overall coverage. Mandatory and Good to Have coverage are separate count-based diagnostics, with absent categories marked not applicable. Work evidence and required facets determine each status. Custom facets may span statements in one role, never across employers. Education does not need an action verb. The verdict remains a separate mandatory-gap check: mandatory coverage below 40% gives insufficient documented fit; otherwise unresolved mandatory gaps give conditional fit, and no mandatory gaps gives suitable on documented evidence. Scores require human review.',
             'limitations': ['Resume evidence is self-reported and not independently verified.', 'Local rules may miss paraphrases or ambiguous layouts; review extracted text and the requirement matrix.', 'Skill-specific duration and project domain cannot be inferred from total tenure.', 'Scanned files require OCR; no candidate identity or sensitive personal attributes are used in scoring.'],
             'document_warnings': ['Instruction-like text was excluded from evidence.'] if any(INSTRUCTION.search(u['quote']) for u in units) else [],
             'jd_sha256': sha256(request.jd_text.encode()).hexdigest(), 'resume_sha256': sha256(request.resume_text.encode()).hexdigest()}

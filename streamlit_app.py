@@ -10,7 +10,7 @@ from app.documents import extract, DocumentError, MAX_BYTES
 from app.engine import analyze, parse_custom_jd, VERSION
 from app.models import AnalyzeRequest
 from app.ui import stylesheet, section_heading, session_status, evidence_quote, empty_state
-from app.scoring_ui import render_scoring_guide
+from app.scoring_ui import render_scoring_guide, render_evidence_summary
 from app.reports import html_report, pdf_report, report_filename
 from app.streamlit_support import DEMO_RESUME, editor_rows, reviewed_requirements, fingerprint
 
@@ -139,12 +139,12 @@ try:
         with st.expander('How to review the requirements'):
             st.caption('Check each expectation against the job description. Alternatives are comma-separated (OR). Required facets are semicolon-separated (AND); | means OR inside a facet. Editing default facets switches to literal matching.')
         edited = st.data_editor(editor_rows(originals), key='requirements_editor', num_rows='dynamic', hide_index=True, width='stretch', height=330,
-            column_order=['name', 'category', 'description', 'weight', 'alternatives', 'all_of', 'knowledge_ok'],
+            column_order=['name', 'category', 'description', 'alternatives', 'all_of', 'knowledge_ok'],
             column_config={
                 'id': None,
                 'name': st.column_config.TextColumn('Skill / Area', required=True),
                 'category': st.column_config.SelectboxColumn('Category', options=['Mandatory', 'Good to Have'], required=True),
-                'weight': st.column_config.NumberColumn('Weight', min_value=1, max_value=10, step=1, required=True),
+                'weight': None,
                 'description': st.column_config.TextColumn('Expectation from JD', required=True, width='large'),
                 'alternatives': st.column_config.TextColumn('Accepted alternatives', width='large'),
                 'all_of': st.column_config.TextColumn('Required facets', width='large'),
@@ -185,17 +185,18 @@ if report:
     st.header('Screening results')
     st.caption(f"{report['candidate']} \u00b7 {report['jd_label']}")
     c1, c2, c3 = st.columns(3)
-    c1.metric('Overall evidence coverage', f'{report["score"]:.1f} / 100')
+    c1.metric('Overall evidence coverage', f'{report["score"]:.1f} / 100',
+              help='100 × (Matched count + 0.5 × Partial Match count) ÷ Total JD requirements. Every requirement counts equally.')
     c2.metric('Mandatory coverage', f'{report["scores"]["Mandatory"]}%' if report['scores']['Mandatory'] is not None else 'Not applicable',
               help='Only mandatory requirements present in the reviewed JD are assessed.')
     c3.metric('Good-to-have coverage', f'{report["scores"]["Good to Have"]}%' if report['scores']['Good to Have'] is not None else 'Not applicable',
               help='Excluded when the JD has no good-to-have requirements. If the JD includes them, missing resume evidence receives zero credit.')
     if report['scores']['Good to Have'] is None:
-        st.caption('No good-to-have requirements in this JD. They are excluded; mandatory coverage determines 100% of the score.')
+        st.caption('No good-to-have requirements in this JD. Good-to-have coverage is Not applicable.')
     elif report['scores']['Mandatory'] is None:
-        st.caption('No mandatory requirements in this JD. Good-to-have coverage determines 100% of the score.')
-    else:
-        st.caption('This JD includes both categories: mandatory coverage contributes 80% and good-to-have coverage contributes 20%.')
+        st.caption('No mandatory requirements in this JD. Mandatory coverage is Not applicable.')
+    st.caption('Overall coverage comes directly from evidence status counts. Mandatory and good-to-have coverage are shown separately and are not combined into the overall score.')
+    render_evidence_summary(report['scoring'])
     if report['mandatory_gaps']:
         st.warning(report['recommendation'])
     else:
