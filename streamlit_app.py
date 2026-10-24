@@ -8,7 +8,8 @@ import streamlit as st
 from pydantic import ValidationError
 from app.documents import extract, DocumentError, MAX_BYTES
 from app.engine import analyze, parse_custom_jd, VERSION
-from app.models import AnalyzeRequest
+from app.models import AnalyzeRequest, Requirement
+from app.requirements import consolidate_requirements
 from app.ui import stylesheet, section_heading, session_status, evidence_quote, empty_state
 from app.scoring_ui import render_scoring_guide, render_evidence_summary
 from app.reports import html_report, pdf_report, report_filename
@@ -39,6 +40,8 @@ def read_upload(upload, key):
 
 with st.sidebar:
     st.markdown('<div class="brand"><span class="brand-mark">p</span><div><div class="brand-name">proofpoint</div><div class="brand-subtitle">Hiring workspace</div></div></div>', unsafe_allow_html=True)
+    st.markdown('**Appearance**')
+    st.caption('Switch Light / Dark from the ⋮ menu at the top right. Your browser remembers your choice.')
     st.markdown('<div class="rail-label">WORKSPACE</div><nav class="rail-nav" aria-label="Workspace sections"><a href="#documents" target="_self"><span class="nav-symbol" aria-hidden="true">&#9639;</span>Documents</a><a href="#benchmark" target="_self"><span class="nav-symbol" aria-hidden="true">&#8801;</span>Requirements</a><a href="#results" target="_self"><span class="nav-symbol" aria-hidden="true">&#9678;</span>Screening results</a></nav>', unsafe_allow_html=True)
     status_slot = st.empty()
     st.markdown('<div class="rail-note"><strong>Evidence before assumptions.</strong>Every match connects a job requirement to supporting resume evidence.</div>', unsafe_allow_html=True)
@@ -71,6 +74,7 @@ try:
         if jd_mode == 'Default SDET JD':
             jd_text = (ROOT / 'data/default-jd.md').read_text()
             originals = json.loads((ROOT / 'data/default-requirements.json').read_text())
+            originals = [r.model_dump() for r in consolidate_requirements([Requirement(**r) for r in originals])]
             jd_label = 'Default · SDET'
             st.success('SDET · 3–12 years · 13 mandatory requirements · 6 preferences')
             st.session_state.pop('jd_document', None)
@@ -137,7 +141,7 @@ try:
                     st.text(f"{requirement['name']} · {requirement['category']}")
                     st.text(requirement['source'])
         with st.expander('How to review the requirements'):
-            st.caption('Check each expectation against the job description. Alternatives are comma-separated (OR). Required facets are semicolon-separated (AND); | means OR inside a facet. Editing default facets switches to literal matching.')
+            st.caption('Equivalent skills/areas are consolidated into one row, retaining their source expectations and required conditions. Mandatory takes precedence when the same area is also listed as preferred. Check each expectation against the job description. Alternatives are comma-separated (OR). Required facets are semicolon-separated (AND); | means OR inside a facet. Editing default facets switches to literal matching.')
         st.caption('Use the Screen column to choose the skills/areas to assess. Select none to screen all requirements by default. Only assessed requirements affect the score, category coverage, evidence gaps and verdict.')
         edited = st.data_editor(editor_rows(originals), key='requirements_editor', num_rows='dynamic', hide_index=True, width='stretch', height=330,
             column_order=['selected', 'name', 'category', 'description', 'alternatives', 'all_of', 'knowledge_ok'],
@@ -154,6 +158,9 @@ try:
             })
         assessed_rows, scope = screening_scope(edited)
         requirements = reviewed_requirements(assessed_rows, originals)
+        merged_count = len(assessed_rows) - len(requirements)
+        scope['total_count'] -= merged_count
+        scope['assessed_count'] = len(requirements)
         if scope['mode'] == 'selected':
             st.info(f"{scope['assessed_count']} of {scope['total_count']} skills/areas selected for screening. {scope['excluded_count']} unselected requirements will be excluded.")
         else:

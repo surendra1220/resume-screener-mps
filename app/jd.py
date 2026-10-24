@@ -5,6 +5,7 @@ source wording and explicit matching facets for human review.
 """
 import re
 from .models import Requirement
+from .requirements import consolidate_requirements, join_text
 
 VERSION = '2.0.0'
 OPTIONAL = re.compile(r'good[ -]to[ -]haves?|nice[ -]to[ -]haves?|preferred|desirable|optional|added advantage|a plus|an advantage', re.I)
@@ -234,9 +235,10 @@ def parse_custom_jd(text):
                     key += (duration.group(),)
                 if key in seen:
                     existing = seen[key]
+                    existing.knowledge_ok = existing.knowledge_ok and bool(re.search(r'knowledge|understanding|familiarity|familiar|exposure', core, re.I))
                     if sentence not in existing.source:
-                        existing.source = (existing.source + '\n' + sentence)[:4000]
-                        existing.description = (existing.description + '\n' + sentence)[:2000]
+                        existing.source = join_text(existing.source, sentence, 4000)
+                        existing.description = join_text(existing.description, sentence, 2000)
                     continue
                 terms = list(dict.fromkeys(a for g in facets for a in g))
                 if len(sentence) > 2000 or len(terms) > 30 or len(facets) > 20:
@@ -250,6 +252,7 @@ def parse_custom_jd(text):
             for part in optional_parts:
                 for label, aliases in concepts(part):
                     result.append(Requirement(id=f'custom-skill-{len(result)+1}', name=label, category='Good to Have', description=sentence, source=sentence, alternatives=aliases))
+    result = consolidate_requirements(result)
     if len(result) > 60:
         raise ValueError('The JD contains more than 60 requirements. Split it by role; no requirements were silently discarded.')
     return result

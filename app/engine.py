@@ -6,7 +6,7 @@ from hashlib import sha256
 from .models import Requirement
 from .scoring import calculate_scoring, verdict, CREDITS
 
-VERSION = '3.1.0'
+VERSION = '3.2.0'
 POINTS = CREDITS
 ACTION = re.compile(r'\b(built|build|designed|developed|implemented|automated|tested|integrated|maintained|worked|utilized|used|enabled|applied|supported|collaborated|participated|mentored|executed|validated|wired|converted|performed|created|led|managed|deployed|analyzed|analysed)\b', re.I)
 INSTRUCTION = re.compile(r'ignore (?:all|previous|prior)|system prompt|you (?:must|should|are)|assign (?:a |the )?score|mark (?:me|all|the candidate)|rank (?:me|this)|instruction to|override .*score', re.I)

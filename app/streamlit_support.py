@@ -2,6 +2,7 @@
 import hashlib
 import json
 from .models import Requirement
+from .requirements import consolidate_requirements
 
 
 def editor_rows(requirements):
@@ -44,7 +45,7 @@ def reviewed_requirements(rows, originals):
         raise ValueError('Provide between 1 and 60 requirements.')
     if len({r.id for r in result}) != len(result):
         raise ValueError('Each requirement needs a unique ID. Remove duplicated rows.')
-    return result
+    return consolidate_requirements(result)
 
 
 def fingerprint(*values):
