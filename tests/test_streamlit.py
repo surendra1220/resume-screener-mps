@@ -81,6 +81,33 @@ def test_clear_session_removes_candidate_data():
     assert not app.exception
 
 
+def test_missing_custom_jd_keeps_both_document_panels_available():
+    app = AppTest.from_file(str(ROOT / 'streamlit_app.py')).run(timeout=30)
+    app.radio[0].set_value('Upload a custom JD').run()
+    assert not app.exception
+    assert len(app.radio) == 2
+    assert app.radio[1].label == 'Candidate source'
+    assert 'report' not in app.session_state
+    assert any('Your benchmark starts here' in m.value for m in app.markdown)
+
+
+def test_results_search_filters_and_interview_tabs():
+    app = AppTest.from_file(str(ROOT / 'streamlit_app.py')).run(timeout=30)
+    app.radio[1].set_value('Try synthetic demo').run()
+    app.checkbox[0].check().run()
+    next(b for b in app.button if b.label == 'Screen candidate →').click().run(timeout=30)
+    original_score = app.session_state['report']['score']
+    assert [t.label for t in app.tabs] == ['Evidence matrix', 'Interview guide', 'Scoring & methodology']
+    app.text_input[0].set_value('no-such-competency').run()
+    assert any('No matching requirements' in m.value for m in app.markdown)
+    app.text_input[0].set_value('Python').run()
+    assert any('Showing 1 of 19 requirements' in c.value for c in app.caption)
+    next(s for s in app.selectbox if s.label == 'Requirement type').set_value('Good to Have').run()
+    assert any('Showing 0 of 19 requirements' in c.value for c in app.caption)
+    assert app.session_state['report']['score'] == original_score
+    assert not app.exception
+
+
 @pytest.mark.parametrize('has_gaps', [False, True])
 def test_verdict_does_not_render_internal_objects_with_magic_enabled(monkeypatch, has_gaps):
     """Run the actual UI through the same magic AST transform used by the hosted runner."""

@@ -2,6 +2,8 @@
 
 A local, single-user screening application with a curated default SDET job description, editable custom JD requirements, project-level evidence, transparent scores, interview questions, and downloadable HTML/PDF reports.
 
+The Streamlit workspace uses a shadcn/ui-inspired neutral design: a section navigation sidebar, session readiness indicators, document cards, a benchmark editor and a results dashboard. Results include searchable evidence with status/category filters, a requirement inspector, interview questions and scoring methodology. The layout adapts to mobile screens. Presentation styles live in `app/static/streamlit.css`, with escaped HTML helpers in `app/ui.py`; screening logic remains shared with FastAPI.
+
 ### Custom JD extraction and evidence scoring
 
 Engine 2.0 extracts source-grounded competencies instead of treating capitalized words as skills. Headings, job metadata and reporting relationships do not score. Each matrix expectation retains the JD wording. Explicit preferences (including “added advantage” and “Nice to Haves”) and optional parentheticals are classified separately. Repeated identical requirements are deduplicated; complex JDs exceeding the supported limits raise a review error rather than silently dropping requirements.
