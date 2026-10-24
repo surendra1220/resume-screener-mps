@@ -4,9 +4,10 @@ import re
 from datetime import date, datetime, timezone
 from hashlib import sha256
 from .models import Requirement
+from .scoring import calculate_scoring, verdict, CREDITS
 
-VERSION = '2.0.0'
-POINTS = {'Matched': 1, 'Partial Match': .5, 'Claimed but Unevidenced': 0, 'Missing': 0}
+VERSION = '2.1.0'
+POINTS = CREDITS
 ACTION = re.compile(r'\b(built|build|designed|developed|implemented|automated|tested|integrated|maintained|worked|utilized|used|enabled|applied|supported|collaborated|participated|mentored|executed|validated|wired|converted|performed|created|led|managed|deployed|analyzed|analysed)\b', re.I)
 INSTRUCTION = re.compile(r'ignore (?:all|previous|prior)|system prompt|you (?:must|should|are)|assign (?:a |the )?score|mark (?:me|all|the candidate)|rank (?:me|this)|instruction to|override .*score', re.I)
 PROJECT = re.compile(r'professional experience|work experience\s*$|employment|roles\s*&?\s*responsibilities|project(?:s|\s*\d+| experience)?\s*:?$|employment history', re.I)
@@ -172,23 +173,18 @@ def analyze(request, today=None):
     units = evidence_units(request.resume_text)
     # Bundled IDs select audited default facets; custom draft IDs use literal facets.
     rows = [assess(req, request.resume_text, units, today) for req in request.requirements]
-    scores = {}
-    for category in ('Mandatory', 'Good to Have'):
-        subset = [r for r in rows if r['category'] == category]
-        scores[category] = round(100 * sum(r['credit'] * r['weight'] for r in subset) / sum(r['weight'] for r in subset), 1) if subset else None
-    available = [(scores[c], w) for c, w in [('Mandatory', .8), ('Good to Have', .2)] if scores[c] is not None]
-    score = round(sum(s * w for s, w in available) / sum(w for s, w in available), 1)
+    scoring = calculate_scoring(rows)
+    scores = {r['category']: r['coverage'] for r in scoring['categories']}
+    score = scoring['overall_score']
     gaps = [r['name'] for r in rows if r['category'] == 'Mandatory' and r['status'] != 'Matched']
-    recommendation = 'Suitable on documented evidence — verify in interview' if not gaps else 'Conditional fit — mandatory evidence gaps require review'
-    if scores['Mandatory'] is not None and scores['Mandatory'] < 40:
-        recommendation = 'Insufficient documented fit — substantial mandatory gaps'
+    recommendation = verdict(scores, gaps)
     return {'id': sha256((request.jd_text + request.resume_text + str(rows)).encode()).hexdigest()[:12],
             'candidate': request.candidate_label, 'jd_label': request.jd_label,
             'screened_files': [request.resume_filename] if request.resume_filename else [],
             'generated_at': datetime.now(timezone.utc).isoformat(), 'engine_version': VERSION,
-            'score': score, 'scores': scores, 'recommendation': recommendation, 'mandatory_gaps': gaps,
+            'score': score, 'scores': scores, 'scoring': scoring, 'recommendation': recommendation, 'mandatory_gaps': gaps,
             'requirements': rows, 'counts': {s: sum(r['status'] == s for r in rows) for s in POINTS},
-            'method': 'Source-grounded JD requirements; work context + action + required facets. Custom facets may be supported across statements within the same role, never across employers. Education is assessed without a project-action condition. Knowledge claims qualify only when the JD accepts knowledge/exposure and all facets are covered. Matched 100%, Partial 50%, Claimed/Missing 0%. Mandatory contributes 80%; Good to Have 20%, normalized if a category is absent. Weights apply within each category. Mandatory gaps prevent a suitable verdict.',
+            'method': 'Source-grounded JD requirements; work context + action + required facets. Custom facets may be supported across statements within the same role, never across employers. Education is assessed without a project-action condition. Knowledge claims qualify only when the JD accepts knowledge/exposure and all facets are covered. Matched 100%, Partial 50%, Claimed/Missing 0%. Category coverage = 100 x sum(credit x weight) / sum(weights). When both categories are in the JD, Mandatory contributes 80% and Good to Have 20%. A category absent from the JD is not applicable and excluded; the remaining category contributes 100%. Good-to-have requirements present in the JD but absent from the resume remain in the calculation with zero credit. Mandatory coverage below 40% gives insufficient documented fit; otherwise unresolved mandatory gaps give conditional fit, and no mandatory gaps gives suitable on documented evidence. Scores and verdicts require human review.',
             'limitations': ['Resume evidence is self-reported and not independently verified.', 'Local rules may miss paraphrases or ambiguous layouts; review extracted text and the requirement matrix.', 'Skill-specific duration and project domain cannot be inferred from total tenure.', 'Scanned files require OCR; no candidate identity or sensitive personal attributes are used in scoring.'],
             'document_warnings': ['Instruction-like text was excluded from evidence.'] if any(INSTRUCTION.search(u['quote']) for u in units) else [],
             'jd_sha256': sha256(request.jd_text.encode()).hexdigest(), 'resume_sha256': sha256(request.resume_text.encode()).hexdigest()}

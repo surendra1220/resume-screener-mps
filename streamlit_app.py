@@ -10,6 +10,7 @@ from app.documents import extract, DocumentError, MAX_BYTES
 from app.engine import analyze, parse_custom_jd, VERSION
 from app.models import AnalyzeRequest
 from app.ui import stylesheet, section_heading, session_status, evidence_quote, empty_state
+from app.scoring_ui import render_scoring_guide
 from app.reports import html_report, pdf_report, report_filename
 from app.streamlit_support import DEMO_RESUME, editor_rows, reviewed_requirements, fingerprint
 
@@ -52,6 +53,9 @@ st.markdown('<div class="page-topline"><span>Workspace<span class="slash">/</spa
 st.title('Candidate screening')
 st.markdown('<p class="page-description">A structured review, from job requirements to resume evidence.<br>Upload your documents, review the benchmark, and make an informed assessment.</p>', unsafe_allow_html=True)
 st.markdown('<div class="workflow" aria-label="Screening workflow"><div class="workflow-item"><span class="workflow-index">01</span><div><strong>Add documents</strong><small>Job description & candidate resume</small></div></div><div class="workflow-item"><span class="workflow-index">02</span><div><strong>Review requirements</strong><small>Confirm the screening benchmark</small></div></div><div class="workflow-item"><span class="workflow-index">03</span><div><strong>Explore the evidence</strong><small>Assess gaps & export your report</small></div></div></div>', unsafe_allow_html=True)
+
+with st.expander('How scoring and verdicts work'):
+    render_scoring_guide()
 
 if time.time() - st.session_state.get('report_time', time.time()) > 3600:
     clear_screening()
@@ -182,8 +186,16 @@ if report:
     st.caption(f"{report['candidate']} \u00b7 {report['jd_label']}")
     c1, c2, c3 = st.columns(3)
     c1.metric('Overall evidence coverage', f'{report["score"]:.1f} / 100')
-    c2.metric('Mandatory coverage', f'{report["scores"]["Mandatory"]}%' if report['scores']['Mandatory'] is not None else 'N/A')
-    c3.metric('Good-to-have coverage', f'{report["scores"]["Good to Have"]}%' if report['scores']['Good to Have'] is not None else 'N/A')
+    c2.metric('Mandatory coverage', f'{report["scores"]["Mandatory"]}%' if report['scores']['Mandatory'] is not None else 'Not applicable',
+              help='Only mandatory requirements present in the reviewed JD are assessed.')
+    c3.metric('Good-to-have coverage', f'{report["scores"]["Good to Have"]}%' if report['scores']['Good to Have'] is not None else 'Not applicable',
+              help='Excluded when the JD has no good-to-have requirements. If the JD includes them, missing resume evidence receives zero credit.')
+    if report['scores']['Good to Have'] is None:
+        st.caption('No good-to-have requirements in this JD. They are excluded; mandatory coverage determines 100% of the score.')
+    elif report['scores']['Mandatory'] is None:
+        st.caption('No mandatory requirements in this JD. Good-to-have coverage determines 100% of the score.')
+    else:
+        st.caption('This JD includes both categories: mandatory coverage contributes 80% and good-to-have coverage contributes 20%.')
     if report['mandatory_gaps']:
         st.warning(report['recommendation'])
     else:
@@ -198,7 +210,7 @@ if report:
         with matrix_tab:
             f1, f2, f3 = st.columns([1, 1, 1.5])
             status = f1.selectbox('Evidence status', ['All statuses', *report['counts']])
-            category = f2.selectbox('Requirement type', ['All requirements', 'Mandatory', 'Good to Have'])
+            category = f2.selectbox('Requirement type', ['All requirements', *[c for c, coverage in report['scores'].items() if coverage is not None]])
             search = f3.text_input('Search requirements', placeholder='Search a skill or expectation...')
             rows = [r for r in report['requirements'] if (status == 'All statuses' or r['status'] == status)
                     and (category == 'All requirements' or r['category'] == category)
@@ -227,7 +239,8 @@ if report:
                     st.text(row['question'])
                     st.text('JD expectation: ' + row['description'])
         with method_tab:
-            st.markdown('**How the score is calculated**')
+            render_scoring_guide(report)
+            st.markdown('**How resume evidence is assessed**')
             st.write(report['method'])
             st.markdown('**Review limitations**')
             for note in report['limitations'] + report['document_warnings']:

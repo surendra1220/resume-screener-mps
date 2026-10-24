@@ -4,8 +4,39 @@ import pytest
 from types import SimpleNamespace
 from streamlit.testing.v1 import AppTest
 from app.streamlit_support import editor_rows, reviewed_requirements, fingerprint
+from app.engine import VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize('include_preferences', [False, True])
+def test_jd_category_applicability_is_explained_in_results(monkeypatch, include_preferences):
+    import streamlit as st
+    jd = 'Must Have Skills:\nPython: Develop automated tests for the customer billing platform.'
+    if include_preferences:
+        jd += '\nNice to Haves:\nAWS: Experience running cloud environments.'
+    resume = b'PROFESSIONAL EXPERIENCE:\nDeveloped Python automation tests for the customer billing platform.'
+    def upload(label, **kwargs):
+        data = jd.encode() if kwargs.get('key') == 'jd_upload' else resume
+        return SimpleNamespace(name='synthetic.txt', getvalue=lambda: data)
+    monkeypatch.setattr(st, 'file_uploader', upload)
+    app = AppTest.from_file(str(ROOT / 'streamlit_app.py')).run(timeout=30)
+    assert any(e.label == 'How scoring and verdicts work' for e in app.expander)
+    app.radio[0].set_value('Upload a custom JD').run()
+    app.checkbox[0].check().run()
+    next(b for b in app.button if b.label == 'Screen candidate →').click().run(timeout=30)
+    assert not app.exception
+    expected = '0.0%' if include_preferences else 'Not applicable'
+    assert next(m for m in app.metric if m.label == 'Good-to-have coverage').value == expected
+    assert app.session_state['report']['score'] == (80 if include_preferences else 100)
+    formulas = [m.value for m in app.markdown]
+    expected_formula = 'Final score = (100 × 80%) + (0 × 20%) = 80.0/100' if include_preferences else 'Final score = (100 × 100%) = 100.0/100'
+    assert any(expected_formula in s for s in formulas)
+    options = next(s for s in app.selectbox if s.label == 'Requirement type').options
+    assert ('Good to Have' in options) == include_preferences
+    if not include_preferences:
+        assert any('No good-to-have requirements in this JD' in c.value for c in app.caption)
+    assert any('Every mandatory requirement is Matched' in m.value for m in app.markdown)
 
 
 def test_custom_upload_uses_extracted_expectations_in_ui_and_report(monkeypatch):
@@ -24,7 +55,7 @@ def test_custom_upload_uses_extracted_expectations_in_ui_and_report(monkeypatch)
     next(b for b in app.button if b.label == 'Screen candidate →').click().run(timeout=30)
     assert not app.exception
     report = app.session_state['report']
-    assert report['engine_version'] == '2.0.0' and report['score'] == 100
+    assert report['engine_version'] == VERSION and report['score'] == 100
     assert [r['name'] for r in report['requirements']] == ['Python', 'AWS']
     assert report['requirements'][1]['category'] == 'Good to Have'
     assert report['requirements'][0]['description'] in app.session_state['html_bytes']
