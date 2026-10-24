@@ -37,7 +37,7 @@ def verdict(scores, mandatory_gaps):
 def verdict_reason(report):
     coverage = report['scores']['Mandatory']
     if coverage is None:
-        return 'The JD has no mandatory requirements, so there are no mandatory gaps to assess. The score reflects only its good-to-have requirements.'
+        return 'The screening scope has no mandatory requirements, so there are no mandatory gaps to assess. The score reflects only its included good-to-have requirements.'
     if coverage < MANDATORY_THRESHOLD:
         return f'Mandatory coverage is {coverage:g}%, below the {MANDATORY_THRESHOLD}% threshold. This produces the insufficient documented fit verdict.'
     if report['mandatory_gaps']:

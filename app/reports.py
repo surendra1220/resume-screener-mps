@@ -13,6 +13,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen.canvas import Canvas
 from .scoring import calculate_scoring, CREDITS
+from .streamlit_support import scope_description
 
 FONT_DIR = Path(__file__).parent / 'static/fonts'
 for name, filename in [('OpenSans', 'OpenSans-Regular.ttf'), ('OpenSans-Bold', 'OpenSans-Bold.ttf'), ('OpenSans-Italic', 'OpenSans-Italic.ttf')]:
@@ -55,7 +56,8 @@ def audit_view(report):
     return {'date': stamp.date().isoformat(), 'generated': stamp.strftime('%Y-%m-%d %H:%M IST'),
             'files': ', '.join(report.get('screened_files') or ['Not recorded']), 'experience': experience,
             'unresolved': unresolved, 'decision': decision, 'counts': counts, 'breakdown': breakdown,
-            'arithmetic': arithmetic, 'raw': raw}
+            'arithmetic': arithmetic, 'raw': raw,
+            'scope': scope_description(report['screening_scope']) if report.get('screening_scope') else f"All {len(report['requirements'])} requirements supplied for screening."}
 
 
 def report_filename(report, format):
@@ -76,7 +78,7 @@ def html_report(report):
 <style>
 *{{box-sizing:border-box}}body{{margin:0;background:#edf1f7;color:#172033;font:13px/1.55 Arial,sans-serif}}.banner{{background:#0f172a;color:white;padding:19px 34px;font-size:11px;letter-spacing:2px;font-weight:bold}}main{{max-width:1180px;margin:0 auto;background:white;padding:26px 34px 40px}}h1{{font-size:25px;margin:0 0 15px}}h2{{font-size:19px;color:#1e40af;margin:26px 0 10px}}h3{{font-size:15px}}h4{{margin:0 0 7px}}p{{margin:5px 0}}.metadata{{padding:14px;background:#f1f5f9;border:1px solid #cbd5e1}}.table-scroll{{overflow-x:auto}}table{{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed}}th,td{{border:1px solid #cbd5e1;padding:8px;vertical-align:top;text-align:left;overflow-wrap:anywhere}}thead th{{background:#1e293b;color:white;font-weight:bold}}.leaderboard th:nth-child(1){{width:4%}}.leaderboard th:nth-child(2){{width:19%}}.leaderboard th:nth-child(3){{width:10%}}.leaderboard th:nth-child(4){{width:23%}}.leaderboard th:nth-child(5){{width:14%}}.leaderboard th:nth-child(6){{width:30%}}.takeaway{{margin:16px 0;padding:13px;background:#fef3c7;border:1px solid #f59e0b;color:#854d0e}}.candidate-bar{{background:#e0e7ff;border:1px solid #f59e0b;padding:10px;font-weight:bold;font-size:12px}}.matrix th,.matrix td{{border-color:#f59e0b}}.matrix thead th{{background:#f1f5f9;color:#334155}}.matrix thead th:nth-child(1){{width:17%}}.matrix thead th:nth-child(2){{width:24%}}.matrix thead th:nth-child(3){{width:10%}}.matrix thead th:nth-child(4){{width:13%}}.matrix thead th:nth-child(5){{width:36%}}.status{{font-weight:bold}}.excerpt{{margin:0 0 10px}}.excerpt:last-child{{margin-bottom:0}}.source{{display:block;color:#64748b;font-size:10px;margin-top:4px}}.note{{font-size:11px;color:#64748b}}.audit-detail{{border-top:1px solid #e2e8f0;padding:14px 0}}footer{{border-top:1px solid #cbd5e1;margin-top:25px;padding-top:15px;font-size:10px;color:#64748b;overflow-wrap:anywhere}}@media(max-width:650px){{main{{padding:20px 14px}}.banner{{padding:15px 14px}}h1{{font-size:22px}}table{{min-width:860px}}}}@media print{{@page{{size:A4;margin:12mm}}body{{background:white}}main{{padding:0;max-width:none}}.banner{{padding:12px}}table{{font-size:8px;min-width:0}}th,td{{padding:5px}}thead{{display:table-header-group}}.table-scroll{{overflow:visible}}h2,h3,h4{{break-after:avoid}}.audit-detail{{break-inside:avoid}}}}
 </style></head><body><header class="banner">{BANNER}</header><main><h1>Candidate Screening Audit Report - {view['date']}</h1>
-<div class="metadata"><p><strong>Screened Files:</strong> {esc(view['files'])}</p><p><strong>Active JD:</strong> {esc(report['jd_label'])}</p><p><strong>Candidates Ranked:</strong> 1</p><p class="note">Generated: {view['generated']} · Report: {esc(report['id'])} · Resume evidence is self-reported.</p></div>
+<div class="metadata"><p><strong>Screened Files:</strong> {esc(view['files'])}</p><p><strong>Active JD:</strong> {esc(report['jd_label'])}</p><p><strong>Screening scope:</strong> {esc(view['scope'])}</p><p><strong>Candidates Ranked:</strong> 1</p><p class="note">Generated: {view['generated']} · Report: {esc(report['id'])} · Resume evidence is self-reported.</p></div>
 <h2>{SECTIONS[0]}</h2><div class="table-scroll"><table class="leaderboard"><thead><tr><th>#</th><th>Candidate</th><th>Score</th><th>Verdict</th><th>Exp</th><th>Missing Mandatory</th></tr></thead><tbody><tr><td>1</td><td>{esc(report['candidate'])}</td><td><strong>{report['score']:.1f}/100</strong></td><td>{esc(report['recommendation'])}</td><td>{esc(view['experience'])}</td><td>{esc(view['unresolved'])}</td></tr></tbody></table></div>
 <div class="takeaway"><strong>Key Takeaway &amp; Override Decisions:</strong><p>{esc(report['candidate'])}: {esc(report['recommendation'])}.</p><p>{esc(view['decision'])}</p><p>{esc(view['counts'])}</p></div><p class="note">“Missing Mandatory” lists all unresolved mandatory requirements, including Partial Match and Claimed but Unevidenced. Ranking applies to the one candidate in this screening.</p>
 <h2>{SECTIONS[1]}</h2><div class="candidate-bar">Candidate: {esc(report['candidate'])} | Score: {report['score']:.1f}/100 | {esc(report['recommendation'])}</div><div class="table-scroll"><table class="matrix"><thead><tr><th>Skill / Area</th><th>Expectation</th><th>Type</th><th>Status</th><th>Evidence</th></tr></thead><tbody>{''.join(matrix)}</tbody></table></div>
@@ -125,7 +127,7 @@ def pdf_report(report):
         table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors.HexColor(background)), ('BOX', (0, 0), (-1, -1), .5, colors.HexColor(border)), ('LEFTPADDING', (0, 0), (-1, -1), 9), ('RIGHTPADDING', (0, 0), (-1, -1), 9), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
         return table
     story = [p(f"Candidate Screening Audit Report - {view['date']}", 'title'),
-             box([f"Screened Files: {view['files']}", f"Active JD: {report['jd_label']}", 'Candidates Ranked: 1', f"Generated: {view['generated']} | Report: {report['id']} | Resume evidence is self-reported."], '#f1f5f9', '#cbd5e1'),
+             box([f"Screened Files: {view['files']}", f"Active JD: {report['jd_label']}", f"Screening scope: {view['scope']}", 'Candidates Ranked: 1', f"Generated: {view['generated']} | Report: {report['id']} | Resume evidence is self-reported."], '#f1f5f9', '#cbd5e1'),
              p(SECTIONS[0], 'heading')]
     leaderboard = LongTable([[cell(x, True) for x in ['#', 'Candidate', 'Score', 'Verdict', 'Exp', 'Missing Mandatory']],
         [cell('1'), cell(report['candidate']), cell(f"{report['score']:.1f}/100"), cell(report['recommendation']), cell(view['experience']), cell(view['unresolved'])]],

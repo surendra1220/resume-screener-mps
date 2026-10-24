@@ -5,9 +5,23 @@ from .models import Requirement
 
 
 def editor_rows(requirements):
-    return [dict(id=r['id'], name=r['name'], category=r['category'], weight=r['weight'],
+    return [dict(selected=False, id=r['id'], name=r['name'], category=r['category'], weight=r['weight'],
                  description=r['description'], alternatives=', '.join(r['alternatives']),
                  all_of='; '.join(r['all_of']), knowledge_ok=r['knowledge_ok']) for r in requirements]
+
+
+def screening_scope(rows):
+    """Explicit Screen checkboxes control assessment; no checks means all rows."""
+    selected = [row for row in rows if row.get('selected') is True]
+    assessed = selected or rows
+    return assessed, {'mode': 'selected' if selected else 'all', 'total_count': len(rows),
+                      'assessed_count': len(assessed), 'excluded_count': len(rows) - len(assessed)}
+
+
+def scope_description(scope):
+    if scope['mode'] == 'selected':
+        return f"Selected skills only: {scope['assessed_count']} of {scope['total_count']} requirements assessed; {scope['excluded_count']} excluded."
+    return f"No skills selected: all {scope['total_count']} requirements assessed by default."
 
 
 def reviewed_requirements(rows, originals):

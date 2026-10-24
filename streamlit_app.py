@@ -12,7 +12,7 @@ from app.models import AnalyzeRequest
 from app.ui import stylesheet, section_heading, session_status, evidence_quote, empty_state
 from app.scoring_ui import render_scoring_guide, render_evidence_summary
 from app.reports import html_report, pdf_report, report_filename
-from app.streamlit_support import DEMO_RESUME, editor_rows, reviewed_requirements, fingerprint
+from app.streamlit_support import DEMO_RESUME, editor_rows, reviewed_requirements, fingerprint, screening_scope, scope_description
 
 ROOT = Path(__file__).resolve().parent
 FORMATS = ['pdf', 'docx', 'doc', 'txt', 'md', 'rtf', 'odt', 'html', 'htm']
@@ -138,9 +138,11 @@ try:
                     st.text(requirement['source'])
         with st.expander('How to review the requirements'):
             st.caption('Check each expectation against the job description. Alternatives are comma-separated (OR). Required facets are semicolon-separated (AND); | means OR inside a facet. Editing default facets switches to literal matching.')
+        st.caption('Use the Screen column to choose the skills/areas to assess. Select none to screen all requirements by default. Only assessed requirements affect the score, category coverage, evidence gaps and verdict.')
         edited = st.data_editor(editor_rows(originals), key='requirements_editor', num_rows='dynamic', hide_index=True, width='stretch', height=330,
-            column_order=['name', 'category', 'description', 'alternatives', 'all_of', 'knowledge_ok'],
+            column_order=['selected', 'name', 'category', 'description', 'alternatives', 'all_of', 'knowledge_ok'],
             column_config={
+                'selected': st.column_config.CheckboxColumn('Screen', default=False, help='Include this skill in screening. If no skills are checked, all requirements are screened.'),
                 'id': None,
                 'name': st.column_config.TextColumn('Skill / Area', required=True),
                 'category': st.column_config.SelectboxColumn('Category', options=['Mandatory', 'Good to Have'], required=True),
@@ -150,12 +152,21 @@ try:
                 'all_of': st.column_config.TextColumn('Required facets', width='large'),
                 'knowledge_ok': st.column_config.CheckboxColumn('JD accepts knowledge'),
             })
-        requirements = reviewed_requirements(edited, originals)
-        benchmark = fingerprint([r.model_dump() for r in requirements])
+        assessed_rows, scope = screening_scope(edited)
+        requirements = reviewed_requirements(assessed_rows, originals)
+        if scope['mode'] == 'selected':
+            st.info(f"{scope['assessed_count']} of {scope['total_count']} skills/areas selected for screening. {scope['excluded_count']} unselected requirements will be excluded.")
+        else:
+            st.caption(f"No skills selected: all {scope['total_count']} skills/areas will be screened by default.")
+        benchmark = fingerprint(edited, scope, [r.model_dump() for r in requirements])
         if st.session_state.get('benchmark') != benchmark:
             st.session_state['benchmark'] = benchmark
-            st.session_state.pop('approve_requirements', None)
-        approved = st.checkbox('I have reviewed the requirements, alternatives, categories, and source JD.', key='approve_requirements')
+            st.session_state['approval_revision'] = st.session_state.get('approval_revision', 0) + 1
+            for key in list(st.session_state):
+                if key.startswith('approve_requirements'):
+                    del st.session_state[key]
+        approved = st.checkbox('I have reviewed the requirements, alternatives, categories, and source JD.',
+                               key=f"approve_requirements_{st.session_state['approval_revision']}")
         signature = fingerprint(jd_text, resume_text, benchmark, candidate_label, VERSION)
         if st.session_state.get('report_signature') != signature:
             clear_screening()
@@ -169,6 +180,7 @@ try:
                                          jd_label=jd_label, candidate_label=candidate_label,
                                          resume_filename=resume_file.name if resume_mode == 'Upload resume' else None)
                 report = analyze(request)
+                report['screening_scope'] = scope
                 pdf = pdf_report(report)
                 html = html_report(report)
                 st.session_state.update(report=report, pdf_bytes=pdf, html_bytes=html,
@@ -184,17 +196,18 @@ report = st.session_state.get('report')
 if report:
     st.header('Screening results')
     st.caption(f"{report['candidate']} \u00b7 {report['jd_label']}")
+    st.caption('Screening scope — ' + scope_description(report['screening_scope']))
     c1, c2, c3 = st.columns(3)
     c1.metric('Overall evidence coverage', f'{report["score"]:.1f} / 100',
               help='100 × (Matched count + 0.5 × Partial Match count) ÷ Total JD requirements. Every requirement counts equally.')
     c2.metric('Mandatory coverage', f'{report["scores"]["Mandatory"]}%' if report['scores']['Mandatory'] is not None else 'Not applicable',
-              help='Only mandatory requirements present in the reviewed JD are assessed.')
+              help='Coverage of mandatory requirements included in this screening scope. Unselected requirements are excluded.')
     c3.metric('Good-to-have coverage', f'{report["scores"]["Good to Have"]}%' if report['scores']['Good to Have'] is not None else 'Not applicable',
-              help='Excluded when the JD has no good-to-have requirements. If the JD includes them, missing resume evidence receives zero credit.')
+              help='Coverage of good-to-have requirements included in this screening scope. Missing evidence for an included requirement receives zero credit.')
     if report['scores']['Good to Have'] is None:
-        st.caption('No good-to-have requirements in this JD. Good-to-have coverage is Not applicable.')
+        st.caption('No good-to-have requirements in this screening scope. Good-to-have coverage is Not applicable.')
     elif report['scores']['Mandatory'] is None:
-        st.caption('No mandatory requirements in this JD. Mandatory coverage is Not applicable.')
+        st.caption('No mandatory requirements in this screening scope. Mandatory coverage is Not applicable.')
     st.caption('Overall coverage comes directly from evidence status counts. Mandatory and good-to-have coverage are shown separately and are not combined into the overall score.')
     render_evidence_summary(report['scoring'])
     if report['mandatory_gaps']:

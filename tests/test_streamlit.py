@@ -3,10 +3,77 @@ from pathlib import Path
 import pytest
 from types import SimpleNamespace
 from streamlit.testing.v1 import AppTest
-from app.streamlit_support import editor_rows, reviewed_requirements, fingerprint
+from app.streamlit_support import editor_rows, reviewed_requirements, fingerprint, screening_scope
 from app.engine import VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_screening_scope_selected_rows_or_all_when_none_checked():
+    rows = [dict(name='Python', selected=False), dict(name='SQL', selected=False), dict(name='AWS', selected=False)]
+    assessed, scope = screening_scope(rows)
+    assert assessed == rows
+    assert scope == dict(mode='all', total_count=3, assessed_count=3, excluded_count=0)
+    rows[1]['selected'] = True
+    assessed, scope = screening_scope(rows)
+    assert assessed == [rows[1]]
+    assert scope == dict(mode='selected', total_count=3, assessed_count=1, excluded_count=2)
+    rows[2]['selected'] = True
+    assert screening_scope(rows)[0] == rows[1:]
+
+
+def test_skill_selection_controls_score_verdict_exports_and_stale_results(monkeypatch):
+    import streamlit as st
+    jd = b'Must Have Skills:\nUse Python and SQL to develop automated tests for customer billing.'
+    resume = b'PROFESSIONAL EXPERIENCE:\nDeveloped Python automation tests for the customer billing platform.'
+    def upload(label, **kwargs):
+        data = jd if kwargs.get('key') == 'jd_upload' else resume
+        return SimpleNamespace(name='synthetic.txt', getvalue=lambda: data)
+    monkeypatch.setattr(st, 'file_uploader', upload)
+    original_editor = st.data_editor
+    selected = []
+    def editor(data, **kwargs):
+        rows = original_editor(data, **kwargs)
+        for i, row in enumerate(rows):
+            row['selected'] = i in selected
+        return rows
+    monkeypatch.setattr(st, 'data_editor', editor)
+    app = AppTest.from_file(str(ROOT / 'streamlit_app.py')).run(timeout=30)
+    app.radio[0].set_value('Upload a custom JD').run()
+    def screen():
+        app.checkbox[0].check().run()
+        next(b for b in app.button if b.label == 'Screen candidate →').click().run(timeout=30)
+        assert not app.exception
+        return app.session_state['report']
+    report = screen()
+    assert report['score'] == 50 and len(report['requirements']) == 2
+    assert report['screening_scope']['mode'] == 'all'
+    selected[:] = [0]
+    app.run()
+    assert 'report' not in app.session_state
+    assert not app.checkbox[0].value
+    report = screen()
+    assert report['score'] == 100 and not report['mandatory_gaps']
+    assert [r['name'] for r in report['requirements']] == ['Python']
+    assert report['scoring']['total_requirements'] == 1
+    assert report['screening_scope'] == dict(mode='selected', total_count=2, assessed_count=1, excluded_count=1)
+    assert 'Selected skills only: 1 of 2 requirements assessed; 1 excluded.' in app.session_state['html_bytes']
+    assert '<th scope="row">SQL</th>' not in app.session_state['html_bytes']
+    import io
+    from pypdf import PdfReader
+    exported = ' '.join(p.extract_text() for p in PdfReader(io.BytesIO(app.session_state['pdf_bytes'])).pages)
+    assert '1 of 2 requirements assessed; 1 excluded.' in exported
+    selected[:] = [1]
+    app.run()
+    report = screen()
+    assert report['score'] == 0 and report['mandatory_gaps'] == ['SQL']
+    assert [r['name'] for r in report['requirements']] == ['SQL']
+    selected.clear()
+    app.run()
+    assert 'report' not in app.session_state
+    report = screen()
+    assert report['score'] == 50 and len(report['requirements']) == 2
+    assert report['screening_scope']['mode'] == 'all'
 
 
 @pytest.mark.parametrize('include_preferences', [False, True])
@@ -37,7 +104,7 @@ def test_jd_category_applicability_is_explained_in_results(monkeypatch, include_
     options = next(s for s in app.selectbox if s.label == 'Requirement type').options
     assert ('Good to Have' in options) == include_preferences
     if not include_preferences:
-        assert any('No good-to-have requirements in this JD' in c.value for c in app.caption)
+        assert any('No good-to-have requirements in this screening scope' in c.value for c in app.caption)
     assert any('Every mandatory requirement is Matched' in m.value for m in app.markdown)
 
 
