@@ -1,5 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 Category = Literal['Mandatory', 'Good to Have']
 Status = Literal['Matched', 'Partial Match', 'Claimed but Unevidenced', 'Missing']
@@ -16,6 +16,14 @@ class Requirement(BaseModel):
     all_of: list[str] = Field(default_factory=list, max_length=20)
     weight: int = Field(default=1, ge=1, le=10)
     knowledge_ok: bool = False
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def _coerce_name(cls, v):
+        """Guarantee a non-empty name so no code path triggers a validation error."""
+        if isinstance(v, str):
+            v = v.strip()
+        return v if v else 'Requirement'
 
 
 class AnalyzeRequest(BaseModel):
