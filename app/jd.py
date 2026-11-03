@@ -127,6 +127,8 @@ def parse_custom_jd(text):
             continue
         current = line
         for sentence in re.split(r'(?<=[.;])\s+(?=[A-Z])', current):
+            if not sentence or not sentence.strip():
+                continue
             optional = bool(OPTIONAL.search(sentence))
             row_category = 'Good to Have' if optional else category
             # Optional parentheticals must not make the entire sentence optional.
@@ -163,11 +165,17 @@ def parse_custom_jd(text):
                         segments = re.split(r'\band\b', clause, flags=re.I)
                         for segment in segments:
                             choices = concepts(segment)
+                            if not choices:
+                                continue
                             if re.search(r'\bor\b', segment, re.I):
-                                groups.append(list(dict.fromkeys(a for _, aliases in choices for a in aliases)))
+                                grp = list(dict.fromkeys(a for _, aliases in choices for a in aliases))
+                                if grp:
+                                    groups.append(grp)
                             else:
-                                groups.extend(aliases for _, aliases in choices)
-                            labels.extend(n for n, _ in choices)
+                                for _, aliases in choices:
+                                    if aliases:
+                                        groups.append(aliases)
+                            labels.extend(n for n, _ in choices if n)
                         continue
                     items = concepts(clause)
                     if not items:
@@ -187,15 +195,26 @@ def parse_custom_jd(text):
                     if clause_index and re.search(r'CI/CD pipelines\s*\(', core, re.I) and any(n in {'Jenkins', 'Azure DevOps', 'GitLab CI'} for n, _ in items):
                         is_or = True
                     if is_or:
-                        groups.append(list(dict.fromkeys(a for _, aliases in items for a in aliases)))
-                        labels.append(' / '.join(n for n, _ in items))
+                        grp = list(dict.fromkeys(a for _, aliases in items for a in aliases))
+                        if grp:
+                            groups.append(grp)
+                        lbl = ' / '.join(n for n, _ in items if n)
+                        if lbl:
+                            labels.append(lbl)
                     else:
-                        groups.extend(aliases for _, aliases in items)
-                        labels.extend(n for n, _ in items)
+                        for _, aliases in items:
+                            if aliases:
+                                groups.append(aliases)
+                        labels.extend(n for n, _ in items if n)
+                groups = [g for g in groups if g and any(x.strip() for x in g)]
                 if not groups:
                     name, groups = fallback(core)
                 else:
-                    name = ' / '.join(dict.fromkeys(labels))
+                    name = ' / '.join(dict.fromkeys(l for l in labels if l and l.strip()))
+                if not name or not name.strip():
+                    name, fallback_groups = fallback(core)
+                    if not groups:
+                        groups = fallback_groups
                 for phrase, aliases in [
                     ('distributed', ['distributed', 'global teams']),
                     ('multiple product lines', ['multiple product lines']),
@@ -204,10 +223,12 @@ def parse_custom_jd(text):
                 ]:
                     if has(core, phrase):
                         groups.append(aliases)
-                groups = list(dict.fromkeys(tuple(g) for g in groups))
-                groups = [list(g) for g in groups]
+                groups = list(dict.fromkeys(tuple(g) for g in groups if g))
+                groups = [list(g) for g in groups if g]
                 if re.match(r'^[^:()]{2,60}:', core) and not core.lower().startswith(('required:', 'preferred:')):
-                    name = core.split(':', 1)[0].strip()
+                    colon_name = core.split(':', 1)[0].strip()
+                    if colon_name:
+                        name = colon_name
                 elif len(name) > 75:
                     # Describe the competency, keeping its detailed conditions in
                     # the expectation and facets rather than a truncated tool list.
@@ -225,11 +246,21 @@ def parse_custom_jd(text):
                             break
             if not groups:
                 continue
+            name = (name or '').strip()
+            if not name:
+                name = (fallback(sentence)[0] or sentence.strip()[:60] or 'Requirement').strip()
             # Preserve individual language conjunctions as separately reviewable rows.
             drafts = [(name, groups)]
             if kind == 'skill' and len(found) > 1 and all(n in {'Python', 'SQL', 'Java', 'C#', 'TypeScript', 'JavaScript'} for n, _ in found) and not re.search(r'\bor\b', core, re.I):
                 drafts = [(n, [aliases]) for n, aliases in found]
             for label, facets in drafts:
+                label = (label or '').strip()
+                if not label:
+                    label = (fallback(sentence)[0] or sentence.strip()[:60] or 'Requirement').strip()
+                facets = [[a for a in g if a and a.strip()] for g in facets]
+                facets = [g for g in facets if g]
+                if not facets:
+                    continue
                 key = (row_category, kind, tuple(sorted('|'.join(sorted(a.lower() for a in g)) for g in facets)))
                 if kind == 'experience':
                     key += (duration.group(),)
@@ -240,7 +271,9 @@ def parse_custom_jd(text):
                         existing.source = join_text(existing.source, sentence, 4000)
                         existing.description = join_text(existing.description, sentence, 2000)
                     continue
-                terms = list(dict.fromkeys(a for g in facets for a in g))
+                terms = list(dict.fromkeys(a for g in facets for a in g if a and a.strip()))
+                if not terms and kind != 'experience':
+                    terms = [label]
                 if len(sentence) > 2000 or len(terms) > 30 or len(facets) > 20:
                     raise ValueError('A JD requirement is too complex for one row. Split the paragraph into smaller requirements; no conditions were discarded.')
                 req = Requirement(id=f'custom-{kind}-{len(result)+1}', name=label[:200], category=row_category,
@@ -251,7 +284,8 @@ def parse_custom_jd(text):
                 seen[key] = req
             for part in optional_parts:
                 for label, aliases in concepts(part):
-                    result.append(Requirement(id=f'custom-skill-{len(result)+1}', name=label, category='Good to Have', description=sentence, source=sentence, alternatives=aliases))
+                    if label and label.strip():
+                        result.append(Requirement(id=f'custom-skill-{len(result)+1}', name=label.strip(), category='Good to Have', description=sentence, source=sentence, alternatives=aliases))
     result = consolidate_requirements(result)
     if len(result) > 60:
         raise ValueError('The JD contains more than 60 requirements. Split it by role; no requirements were silently discarded.')

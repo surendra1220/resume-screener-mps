@@ -131,13 +131,13 @@ def test_custom_upload_uses_extracted_expectations_in_ui_and_report(monkeypatch)
 
 
 def test_default_roundtrip_preserves_matching_rules():
-    originals = json.loads((ROOT / 'data/default-requirements.json').read_text())
+    originals = json.loads((ROOT / 'data/default-requirements.json').read_text(encoding='utf-8'))
     reviewed = reviewed_requirements(editor_rows(originals), originals)
     assert [r.model_dump() for r in reviewed] == originals
 
 
 def test_facet_edits_switch_to_literal_rules():
-    originals = json.loads((ROOT / 'data/default-requirements.json').read_text())
+    originals = json.loads((ROOT / 'data/default-requirements.json').read_text(encoding='utf-8'))
     rows = editor_rows(originals)
     index = next(i for i, r in enumerate(rows) if r['id'] == 'ui')
     rows[index]['all_of'] = 'UI; SpecFlow'
@@ -216,7 +216,7 @@ def test_verdict_does_not_render_internal_objects_with_magic_enabled(monkeypatch
     from app.streamlit_support import DEMO_RESUME
     resume = 'PROFESSIONAL EXPERIENCE:\nDeveloped Python automation tests for a billing platform.' if has_gaps else DEMO_RESUME.replace('Python automation frameworks', 'a Python automation framework')
     monkeypatch.setattr('app.streamlit_support.DEMO_RESUME', resume)
-    source = (ROOT / 'streamlit_app.py').read_text().replace(
+    source = (ROOT / 'streamlit_app.py').read_text(encoding='utf-8').replace(
         'ROOT = Path(__file__).resolve().parent', f'ROOT = Path({str(ROOT)!r})')
     transformed = ast.unparse(add_magic(source, str(ROOT / 'streamlit_app.py')))
     app = AppTest.from_string(transformed).run(timeout=30)
@@ -230,3 +230,18 @@ def test_verdict_does_not_render_internal_objects_with_magic_enabled(monkeypatch
     assert app.session_state['pdf_bytes'].startswith(b'%PDF')
     assert '<!doctype html>' in app.session_state['html_bytes']
     assert app.session_state['report']['recommendation'] in [x.value for x in [*app.warning, *app.success]]
+
+
+def test_custom_jd_upload_with_complex_clauses_does_not_fail_validation(monkeypatch):
+    import streamlit as st
+    jd = b'Job Requirements:\n- Experience with functional or performance testing and troubleshooting.\n- Strong skills in manual or automated testing and defect tracking.\n- Familiarity with Python or Java for automation.\n'
+    resume = b'PROFESSIONAL EXPERIENCE:\nDeveloped Python automation tests for billing platform.\n'
+    def upload(label, **kwargs):
+        data = jd if kwargs.get('key') == 'jd_upload' else resume
+        return SimpleNamespace(name='custom_jd.txt', getvalue=lambda: data)
+
+    monkeypatch.setattr(st, 'file_uploader', upload)
+    app = AppTest.from_file(str(ROOT / 'streamlit_app.py')).run(timeout=30)
+    app.radio[0].set_value('Upload a custom JD').run()
+    assert not app.exception
+    assert 'benchmark' in app.session_state

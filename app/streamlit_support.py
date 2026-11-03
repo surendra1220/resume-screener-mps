@@ -29,16 +29,33 @@ def reviewed_requirements(rows, originals):
     known = {r['id']: r for r in originals}
     result = []
     for index, row in enumerate(rows):
+        name = str(row.get('name') or '').strip()
+        description = row.get('description') or ''
+        alternatives_str = str(row.get('alternatives') or '').strip()
+        all_of_str = str(row.get('all_of') or '').strip()
+
+        # If a newly inserted dynamic row is completely blank, ignore it.
+        if not name and not str(description).strip() and not alternatives_str and not all_of_str:
+            continue
+
+        if not name:
+            raise ValueError(f"Row {index+1}: provide a skill or area name.")
+        if not str(description).strip():
+            raise ValueError(f"Row {index+1}: provide an expectation from the JD.")
+
         original = known.get(row.get('id'), {})
-        facets = [x.strip() for x in str(row.get('all_of') or '').split(';') if x.strip()]
+        facets = [x.strip() for x in all_of_str.split(';') if x.strip()]
         rid = original.get('id', f'custom-added-{index}')
         if original and facets != original.get('all_of', []):
             rid = f'custom-edited-{index}'
-        alternatives = [x.strip() for x in str(row.get('alternatives') or '').split(',') if x.strip()]
+        alternatives = [x.strip() for x in alternatives_str.split(',') if x.strip()]
         if not alternatives and rid != 'experience':
             raise ValueError(f"Row {index+1}: provide at least one accepted skill term.")
-        result.append(Requirement(id=rid, name=row.get('name') or '', category=row.get('category'),
-                                  description=row.get('description') or '', source=original.get('source', ''),
+        category = row.get('category')
+        if category not in ('Mandatory', 'Good to Have'):
+            category = 'Mandatory'
+        result.append(Requirement(id=rid, name=row.get('name') or '', category=category,
+                                  description=description, source=original.get('source', ''),
                                   alternatives=alternatives, all_of=facets, weight=row.get('weight') or 1,
                                   knowledge_ok=bool(row.get('knowledge_ok'))))
     if not result or len(result) > 60:

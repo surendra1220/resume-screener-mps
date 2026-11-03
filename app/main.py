@@ -93,8 +93,8 @@ def health():
 
 @app.get('/api/default-jd')
 def default_jd():
-    return {'text': (ROOT / 'data/default-jd.md').read_text(), 'label': 'Default · SDET',
-            'requirements': json.loads((ROOT / 'data/default-requirements.json').read_text()), 'needs_review': False}
+    return {'text': (ROOT / 'data/default-jd.md').read_text(encoding='utf-8'), 'label': 'Default · SDET',
+            'requirements': json.loads((ROOT / 'data/default-requirements.json').read_text(encoding='utf-8')), 'needs_review': False}
 
 
 @app.post('/api/extract')
@@ -168,7 +168,7 @@ async def download(report_id: str, format: str):
 
 @app.get('/')
 def index():
-    return HTMLResponse((ROOT / 'app/static/index.html').read_text())
+    return HTMLResponse((ROOT / 'app/static/index.html').read_text(encoding='utf-8'))
 
 
 app.mount('/static', StaticFiles(directory=ROOT / 'app/static'), name='static')

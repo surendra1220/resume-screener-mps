@@ -145,3 +145,32 @@ def test_no_silent_sixty_requirement_cutoff():
 def test_preference_headings(heading):
     rs = parse_custom_jd(f'{heading}\nExperience with AWS cloud environments.')
     assert len(rs) == 1 and rs[0].category == 'Good to Have'
+
+
+def test_or_and_clause_without_matching_concepts_does_not_produce_empty_name():
+    sentences = [
+        'Experience with functional or performance testing and troubleshooting.',
+        'Experience in manual or automated testing and defect tracking.',
+        'Experience in frontend or backend development and architecture.',
+        'Ability to work with local or remote teams and clients.',
+    ]
+    for s in sentences:
+        rs = parse_custom_jd(s)
+        assert len(rs) >= 1
+        for r in rs:
+            assert len(r.name) >= 1
+            assert r.name.strip() != ''
+            assert r.alternatives
+            assert all(facet.strip() != '' for facet in r.all_of)
+
+
+def test_custom_jd_with_blank_or_dynamic_rows_in_reviewed_requirements():
+    from app.streamlit_support import reviewed_requirements
+    originals = [{'id': 'custom-1', 'name': 'Python', 'category': 'Mandatory', 'description': 'Python testing', 'alternatives': ['Python'], 'all_of': [], 'weight': 1, 'knowledge_ok': False}]
+    rows = [
+        {'id': 'custom-1', 'name': 'Python', 'category': 'Mandatory', 'description': 'Python testing', 'alternatives': 'Python', 'all_of': '', 'knowledge_ok': False},
+        {'id': None, 'name': '', 'category': None, 'description': '', 'alternatives': '', 'all_of': '', 'knowledge_ok': False},
+    ]
+    result = reviewed_requirements(rows, originals)
+    assert len(result) == 1
+    assert result[0].name == 'Python'

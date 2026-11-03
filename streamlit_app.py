@@ -72,8 +72,8 @@ try:
         st.markdown(section_heading('JD', 'Job description', 'Define the role and the skills that matter.'), unsafe_allow_html=True)
         jd_mode = st.radio('Job description source', ['Default SDET JD', 'Upload a custom JD'], horizontal=True)
         if jd_mode == 'Default SDET JD':
-            jd_text = (ROOT / 'data/default-jd.md').read_text()
-            originals = json.loads((ROOT / 'data/default-requirements.json').read_text())
+            jd_text = (ROOT / 'data/default-jd.md').read_text(encoding='utf-8')
+            originals = json.loads((ROOT / 'data/default-requirements.json').read_text(encoding='utf-8'))
             originals = [r.model_dump() for r in consolidate_requirements([Requirement(**r) for r in originals])]
             jd_label = 'Default · SDET'
             st.success('SDET · 3–12 years · 13 mandatory requirements · 6 preferences')
