@@ -40,6 +40,7 @@ def read_upload(upload, key):
 
 with st.sidebar:
     st.markdown('<div class="brand"><span class="brand-mark">p</span><div><div class="brand-name">proofpoint</div><div class="brand-subtitle">Hiring workspace</div></div></div>', unsafe_allow_html=True)
+    st.caption(f'Proofpoint Engine **v{VERSION}**')
     st.markdown('**Appearance**')
     st.caption('Switch Light / Dark from the ⋮ menu at the top right. Your browser remembers your choice.')
     st.markdown('<div class="rail-label">WORKSPACE</div><nav class="rail-nav" aria-label="Workspace sections"><a href="#documents" target="_self"><span class="nav-symbol" aria-hidden="true">&#9639;</span>Documents</a><a href="#benchmark" target="_self"><span class="nav-symbol" aria-hidden="true">&#8801;</span>Requirements</a><a href="#results" target="_self"><span class="nav-symbol" aria-hidden="true">&#9678;</span>Screening results</a></nav>', unsafe_allow_html=True)
@@ -55,6 +56,7 @@ with st.sidebar:
 
 st.markdown('<div class="page-topline"><span>Workspace<span class="slash">/</span>Candidate screening</span><span class="page-badge">Human-reviewed decisions</span></div>', unsafe_allow_html=True)
 st.title('Candidate screening')
+st.caption(f'Proofpoint Engine v{VERSION} · Live')
 st.markdown('<p class="page-description">A structured review, from job requirements to resume evidence.<br>Upload your documents, review the benchmark, and make an informed assessment.</p>', unsafe_allow_html=True)
 st.markdown('<div class="workflow" aria-label="Screening workflow"><div class="workflow-item"><span class="workflow-index">01</span><div><strong>Add documents</strong><small>Job description & candidate resume</small></div></div><div class="workflow-item"><span class="workflow-index">02</span><div><strong>Review requirements</strong><small>Confirm the screening benchmark</small></div></div><div class="workflow-item"><span class="workflow-index">03</span><div><strong>Explore the evidence</strong><small>Assess gaps & export your report</small></div></div></div>', unsafe_allow_html=True)
 
