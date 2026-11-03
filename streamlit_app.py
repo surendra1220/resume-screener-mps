@@ -48,6 +48,7 @@ with st.sidebar:
     with st.expander('About your session'):
         st.caption('Documents are processed on the hosting server within your session. No candidate data is written to the repository or a shared report cache. Use documents you are authorized to process.')
         st.caption('PDF, Word and text documents · Up to 10 MB per file')
+        st.caption(f'Proofpoint Engine v{VERSION}')
     if st.button('Clear session', width='stretch'):
         st.session_state.clear()
         st.rerun()

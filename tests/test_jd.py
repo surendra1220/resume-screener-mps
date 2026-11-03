@@ -174,3 +174,56 @@ def test_custom_jd_with_blank_or_dynamic_rows_in_reviewed_requirements():
     result = reviewed_requirements(rows, originals)
     assert len(result) == 1
     assert result[0].name == 'Python'
+
+
+def test_ibm_devops_jd_parses_cleanly_without_empty_requirement_names():
+    jd = '''DevOps Skills Profile
+Mainframe DevOps Modernization | z/OS SCM Migration | CI/CD Enablement
+Role focus: Lead enterprise mainframe DevOps transformation, Endevor-to-Git/DBB migration, deployment automation, troubleshooting, and customer enablement.
+
+Core Responsibilities
+Lead and support Endevor and other SCM-to-Git/DBB/IDD migration projects across enterprise z/OS environments.
+Architect and implement DevOps pipelines using Git, IBM Dependency Based Build (DBB), IBM Developer for z/OS Deploy (IDD), Wazi Deploy, and modern CI/CD platforms.
+Install, configure, and perform problem determination for DBB, Git, IDD, and Wazi on z/OS and UNIX System Services (USS).
+Analyze, convert, validate, and troubleshoot Endevor applications, processors, metadata, and dependency structures.
+Debug pipeline failures, compiler and link-edit errors, dependency issues, repository synchronization problems, and build-map inconsistencies.
+Deliver customer training, hands-on workshops, and enablement for Git, DBB, IDD, and Wazi workflows.
+Collaborate with IBM teams, architects, and client stakeholders to support successful modernization outcomes.
+Document migration processes, best practices, runbooks, and technical resolutions for repeatable delivery.
+Core Technical Skills
+Hands-on experience performing Endevor-to-Git/DBB migrations.
+Strong proficiency in Git, branching strategies, repository management, and code-review workflows.
+Experience authoring Groovy for Jenkins pipelines and YAML for GitHub Actions, Azure DevOps, or GitLab.
+Hands-on experience with IBM DBB, including build scripts, build maps, dependency analysis, and automated compilation.
+Experience with IDD and/or IBM Wazi Deploy for deployment automation.
+Strong ability to troubleshoot pipeline and build failures, compiler and link-edit errors, dependency issues, and conversion mismatches.
+Experience installing, configuring, and troubleshooting DBB, IDD, and Wazi on z/OS and USS.
+Mainframe Background
+Strong z/OS and USS experience.
+Application development or systems programming background, preferably including COBOL, JCL, DB2, CICS, and VSAM.
+Experience with SMP/E, PARMLIB, JES2/JES3, and subsystem configuration is an advantage.
+Consulting and Communication
+Clear, concise communication skills with the ability to articulate the Git/DBB lifecycle.
+Proven customer-facing consulting experience, with 4+ years preferred.
+Ability to diagnose conversion-related errors and guide clients through remediation.
+Experience preparing and delivering technical presentations, migration documentation, and training materials.
+Training and Knowledge Transfer
+Ability to conduct DBB, Git, IDD, and Wazi training sessions and hands-on enablement workshops.
+Experience mentoring development teams on Git workflows, branching, pipeline debugging, and DevOps best practices.
+Preferred Technical and Professional Experience
+8+ years of experience as a Systems Programmer, Application Developer, or Mainframe DevOps Engineer.
+Experience with IBM IDz, Zowe CLI, Wazi Deploy, ADDI, or zUnit.
+Experience with GitHub Actions, Azure DevOps, Jenkins, or GitLab CI/CD.
+Experience with Artifactory, Nexus, or Wazi Deploy artifact management.
+Experience in mainframe modernization, DevOps transformation, or SCM migration programs.
+Preferred Attributes
+Strong analytical and organizational skills.
+Self-motivated, independent, and comfortable leading complex technical initiatives.
+Collaborative mindset with the ability to work across global teams.
+Passion for modernization, automation, and continuous improvement.'''
+    reqs = parse_custom_jd(jd)
+    assert len(reqs) >= 30
+    for r in reqs:
+        assert len(r.name) >= 1
+        assert r.name.strip() != ''
+        assert len(r.description) >= 1

@@ -54,7 +54,7 @@ def reviewed_requirements(rows, originals):
         category = row.get('category')
         if category not in ('Mandatory', 'Good to Have'):
             category = 'Mandatory'
-        result.append(Requirement(id=rid, name=row.get('name') or '', category=category,
+        result.append(Requirement(id=rid, name=name[:200], category=category,
                                   description=description, source=original.get('source', ''),
                                   alternatives=alternatives, all_of=facets, weight=row.get('weight') or 1,
                                   knowledge_ok=bool(row.get('knowledge_ok'))))
